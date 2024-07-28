@@ -247,37 +247,30 @@ could_have_met_thoughtful_version("Chopin", celebrities, debug=True)
 
 # prints
 """
-RESPONSE:
----------
+(...)
+To evaluate whether Frédéric Chopin could have met the celebrities listed, we
+need to consider the birth and death dates of Chopin and each of the celebrities
+mentioned.
 
-To evaluate the function `could_have_met` with the input provided, we need to
-consider the birth and death dates of Frédéric Chopin and the celebrities
-listed.
+1. **Frédéric Chopin**: Born on March 1, 1810, and died on October 17, 1849.
 
-1. **Frédéric Chopin's Lifespan**:
-   - Born: March 1, 1810
-   - Died: October 17, 1849
+2. **Celebrities**:
+   - **Napoleon Bonaparte**: Born on August 15, 1769, and died on May 5, 1821.
+(Could have met)
+   - **Thomas Jefferson**: Born on April 13, 1743, and died on July 4, 1826.
+(Could have met)
+   - **Wolfgang Amadeus Mozart**: Born on January 27, 1756, and died on December
+5, 1791. (Could not have met)
+   - **Julius Caesar**: Born on July 12, 100 BC, and died on March 15, 44 BC.
+(Could not have met)
+   - **Lady Gaga**: Born on March 28, 1986. (Could not have met)
+   - **Ludwig van Beethoven**: Born on December 17, 1770, and died on March 26,
+1827. (Could have met)
 
-2. **Celebrities and Their Lifespans**:
-   - **Napoleon Bonaparte**: Born August 15, 1769, died May 5, 1821
-   - **Thomas Jefferson**: Born April 13, 1743, died July 4, 1826
-   - **Julius Caesar**: Born July 12, 100 BC, died March 15, 44 BC (obviously
-long before Chopin)
-   - **Lady Gaga**: Born March 28, 1986 (after Chopin's death)
-   - **Ludwig van Beethoven**: Born December 17, 1770, died March 26, 1827
-
-3. **Determine Who Chopin Could Have Met**:
-   - **Napoleon**: Lived during Chopin's lifetime.
-   - **Thomas Jefferson**: Also lived during Chopin's lifetime.
-   - **Julius Caesar**: Lived long before Chopin and could not have met him.
-   - **Lady Gaga**: Born after Chopin's death and could not have met him.
-   - **Ludwig van Beethoven**: Lived during Chopin's lifetime but died two years
-before Chopin.
-
-Given this analysis, the people that Chopin could have met are:
-- Napoleon
-- Thomas Jefferson
-- Ludwig van Beethoven
+Based on the analysis, the celebrities that Chopin could have met (those who
+lived during his lifespan) are Napoleon Bonaparte, Thomas Jefferson, and Ludwig
+van Beethoven.
+(...)
 """
 ```
 
