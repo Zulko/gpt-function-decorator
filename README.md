@@ -1,4 +1,4 @@
-# gpt-function
+# GPT-function
 
 [![PyPI](https://img.shields.io/pypi/v/gpt-function.svg)](https://pypi.org/project/gpt-function/)
 [![Tests](https://github.com/zulko/gpt-function/actions/workflows/test.yml/badge.svg)](https://github.com/zulko/gpt-function/actions/workflows/test.yml)
@@ -157,7 +157,7 @@ list_life_events("Mozart", model="gpt-4o-mini")
 
 In general, I find `gpt-4o` superior when it comes to reasoning over general culture. This kind of task:
 
-```
+```python
 @gpt_function(gpt_model='gpt-4o', think_through=True)
 def deduplicate_list_of_celebrities(celebrities):
     """Detect and remove duplicates in the list of celebrities provided
@@ -213,7 +213,7 @@ One reason it's wrong is because the GPT doesn't take time to think through the 
 Now let's ask for a thoughtful answer:
 
 
-```
+```python
 @gpt_function(think_through=True)
 def could_have_met_thoughtful_version(person, celebrities):
     """Return the celebrities in the list that the person could have met,
@@ -336,6 +336,7 @@ wear to prom — he was chosen by Beethoven himself to premiere the Piano
 Concerto No. 1 in Vienna, Austria. Imagine the pressure! And this was before
 TikTok fame, so Carl had to rely on pure talent.
 """
+```
 
 (yes, there's probably funnier jokes to crack, but you can't expect much from a
 chatbot going by a spec sheet. ChatGPT can actually be pretty funny if you let
