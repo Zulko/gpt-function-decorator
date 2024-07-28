@@ -15,7 +15,7 @@ def synonym(word, style='formal'):
     """Return a synonym of the word in the given language style"""
 ```
 
-And just like that, you have python function:
+And just like that, you have a new python function:
 
 ```python
 synonym("man", style="slang") # returns "dude"
@@ -75,7 +75,7 @@ Functions defined with the decorator can have multiple arguments and keyword arg
 def find_words_in_text(text, categories, max_words=10):
     """Return at most max_words of the text from the provided categories"""
 
-# Let's try it!
+# Call:
 text = "The dog in the house ate an apple and a pear from the fridge"
 find_words_in_text(text, categories=["animal", "food"])
 
