@@ -5,7 +5,7 @@
 [![Changelog](https://img.shields.io/github/v/release/zulko/gpt-function-decorator?include_prereleases&label=changelog)](https://github.com/zulko/gpt-function-decorator/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/zulko/gpt-function-decorator/blob/main/LICENSE)
 
-This library provides a  lets you write functions that will be "run" by a GPT (right, now, only OpenAI models). The GPT simply looks at the function (parameters definition and docstring) and imagines what it returns for some given inputs. 
+This library provides lets you define functions that will be "run" by a GPT:
 
 ```python
 from gpt_function_decorator import gpt_function
@@ -23,7 +23,7 @@ synonym("man", style="formal") # returns "gentleman"
 synonym("man", style="academic") # returns "individual"
 ```
 
-Yes, GPTs are unreliable and their answer can be different every time. And no you might not want to use this in production if you work for a large bank. But leveraging GPTs at the right places can replace hundreds of lines of code and save you hours of scripting.
+At each call the GPT (right now, any model from OpenAI, such as GPT-4o or GPT-4o-mini) looks at the function's parameters and  docstring, and infers what it should for the given inputs. Yes, this is unreliable, and the answer can even be different every time. And no you might not want to use this in production if you work for a large bank. But leveraged at the right places this can replace hundreds of lines of code and save hours of scripting.
 
 ## Installation
 
