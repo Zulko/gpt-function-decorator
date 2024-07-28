@@ -1,0 +1,28 @@
+[project]
+name = "gpt-function"
+version = "0.1"
+description = "Decorator to define GPT-powered functions"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{name = "Zulko"}]
+license = {text = "Apache-2.0"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License"
+]
+dependencies = [
+    "openai"
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/zulko/gpt-function"
+Changelog = "https://github.com/zulko/gpt-function/releases"
+Issues = "https://github.com/zulko/gpt-function/issues"
+CI = "https://github.com/zulko/gpt-function/actions"
+
+
+[project.optional-dependencies]
+test = ["pytest"]
