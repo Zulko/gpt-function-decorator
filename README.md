@@ -23,6 +23,31 @@ synonym("man", tone="academic") # returns "individual"
 
 At each call the GPT (right now, any model from OpenAI, such as GPT-4o or GPT-4o-mini) looks at the function's parameters and  docstring, and infers what it should return for the given inputs. Yes, this is unreliable, the answer can even change between calls. But leveraged for the right use-cases, such functions can replace hundreds of lines of code and save hours of scripting headaches.
 
+
+## ... or use Marvin
+
+In a classic case of "woops I couldn't find a library that did this until I re-implemented it", I realized after pushing this online that [marvin](https://github.com/PrefectHQ/marvin/tree/main) has an equivalent feature:
+
+```python
+#pip import marvin
+import marvin
+
+@marvin.fn
+def sentiment(text: str) -> float:
+    """Returns a sentiment score for `text`
+    between -1 (negative) and 1 (positive).
+    """
+
+sentiment("I love working with Marvin!") # 0.8
+```
+
+Here are some comparison points:
+- `gpt_function_decorator` is extremely lightweight in comparison. If focuses on just this feature and only depends on the `openai` package.
+- `gpt_function_decorator` has more opinionated parameters, making it possibly easier for beginners to switch between OpenAI models, force fast vs elaborate thinking of the GPT, and possibly an easier debug mode to print the raw responses.
+- Marvin is much better at declaring and ensuring the type/format of outputs
+- Marvin's chance of survival are greater at this point given the community 
+
+
 ## Installation
 
 Install this library using `pip`:
@@ -31,6 +56,12 @@ pip install gpt-function-decorator
 ```
 
 ## Usage
+## Installation
+
+Install this library using `pip`:
+```bash
+pip install gpt-function-decorator
+```
 
 ### Setting up an OpenAI API key
 
