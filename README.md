@@ -11,17 +11,19 @@ This library provides a  lets you write functions that will be "run" by a GPT (r
 from gpt_function_decorator import gpt_function
 
 @gpt_function
-def synonym(word, style):
+def synonym(word, style='formal'):
     """Return a synonym of the word in the given language style"""
+```
 
+And just like that, you have python function:
+
+```python
 synonym("man", style="slang") # returns "dude"
-
 synonym("man", style="formal") # returns "gentleman"
-
 synonym("man", style="academic") # returns "individual"
 ```
 
-Yes GPTs are unreliable, their answer can be different every time, and no you might not want to use this in production at a large bank. But this is fun and leveraging GPTs can replace hundreds of lines of code and save you hours of scripting.
+Yes, GPTs are unreliable and their answer can be different every time. And no you might not want to use this in production if you work for a large bank. But leveraging GPTs at the right places can replace hundreds of lines of code and save you hours of scripting.
 
 ## Installation
 
@@ -38,12 +40,10 @@ This package requires an OpenAI API key. To get one you need to open an account,
 
 The key will then be automatically detected by `gpt_function`. If you or your users ever need to juggle OpenAI clients with different API keys, projects, etc. you can override gpt_function's OpenAI client at any point of the execution with the following:
 
-```
+```python
 import gpt_function
 import openai
-
 ...
-
 gpt_function.SETTINGS["openai_client"] = OpenAI(api_key="...", project="...")
 ```
 
@@ -57,20 +57,25 @@ from gpt_function_decorator import gpt_function
 @gpt_function
 def fibonacci(n):
     """Return the n first fibonacci numbers"""
+```
 
+Let's try it!
+
+```python
 fibonacci(10)
 
 # Returns:
 [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
 ```
 
-Just like any python function, GPT functions can have multiple arguments and keyword arguments.
+Functions defined with the decorator can have multiple arguments and keyword arguments.
 
 ```python
 @gpt_function
 def find_words_in_text(text, categories, max_words=10):
     """Return at most max_words of the text from the provided categories"""
 
+# Let's try it!
 text = "The dog in the house ate an apple and a pear from the fridge"
 find_words_in_text(text, categories=["animal", "food"])
 
@@ -89,9 +94,10 @@ The basic way to control the output is to describe it. You can go with a very mi
 def country_metadata(country):
     """Return the capital city, language, and calling code of each country"""
 
+# Call:
 country_metadata(["France", "Japan", "Peru"])
 
-# returns
+# Returns:
 [{'country': 'France',
   'capital': 'Paris',
   'language': 'French',
@@ -120,9 +126,10 @@ def country_metadata(cities):
     >>> [{'name': 'France', 'capital': 'Paris', 'lang': 'French', 'code': '+33'}]
     """
 
+# Call:
 country_metadata(["France", "Japan", "Peru"])
 
-# Returns
+# Returns:
 [{'name': 'France', 'capital': 'Paris', 'lang': 'French', 'code': '+33'},
  {'name': 'Japan', 'capital': 'Tokyo', 'lang': 'Japanese', 'code': '+81'},
  {'name': 'Peru', 'capital': 'Lima', 'lang': 'Spanish', 'code': '+51'}]
@@ -140,9 +147,10 @@ def list_life_events(person):
     """Return a list of the person's life events (year, city, long_summary).
     Give as many details as possible in the long summary."""
 
+# Call:
 list_life_events("Mozart")
 
-# Returns
+# Returns:
 [{'year': 1756,
   'city': 'Salzburg',
   'long_summary': 'Wolfgang Amadeus Mozart was born on January 27, 1756, ...'},
@@ -163,6 +171,7 @@ def deduplicate_list_of_celebrities(celebrities):
     """Detect and remove duplicates in the list of celebrities provided
     (consider aliases and diminutives)."""
 
+# Call:
 deduplicate_list_of_celebrities([
     "Claude Debussy",
     "Leo Messi",
@@ -200,10 +209,11 @@ def could_have_met(person, celebrities):
     """Return the celebrities in the list that the person could have met,
     considering their birth and death dates"""
 
+# Call:
 celebrities = ["Napoleon", "Jefferson", "Julius Cesar", "Lady Gaga", "Beethoven"]
 could_have_met("Chopin", celebrities)
 
-# Result
+# Returns:
 ['Beethoven']
 ```
 
@@ -219,10 +229,10 @@ def could_have_met_thoughtful_version(person, celebrities):
     """Return the celebrities in the list that the person could have met,
     considering their birth and death dates"""
 
-
+# Call:
 could_have_met_thoughtful_version("Chopin", celebrities)
 
-# Result
+# Returns:
 ['Napoleon', 'Jefferson', 'Beethoven']
 
 ```
@@ -294,9 +304,10 @@ def shopping_list_for_national_day_food(country):
     }
     """
 
+# Call:
 shopping_list_for_national_day_food("Italy", debug=True)
 
-# Response
+# Returns:
 {'starter': 'Bruschetta',
  'main': 'Pasta Carbonara',
  'dessert': 'Tiramisu',
@@ -323,9 +334,9 @@ def add_humor(text):
     """
     
 add_humor("""
-   In 1806, at the age of 15, Carl Czerny was selected by Beethoven
-   to perform the premiere of his Piano Concerto No. 1 in Vienna, Austria.
-""", debug=True)
+In 1806, at the age of 15, Carl Czerny was selected by Beethoven
+to perform the premiere of his Piano Concerto No. 1 in Vienna, Austria.
+""")
 
 
 # Response
@@ -338,7 +349,7 @@ TikTok fame, so Carl had to rely on pure talent.
 """
 ```
 
-(yes, there's probably funnier jokes to crack, but you can't expect much from a
+(there's probably funnier jokes to crack, but you can't expect much from a
 chatbot going by a spec sheet. ChatGPT can actually be pretty funny if you let
 it riff freely)
 
