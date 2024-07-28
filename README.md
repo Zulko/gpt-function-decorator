@@ -371,7 +371,7 @@ TikTok fame, so Carl had to rely on pure talent.
 chatbot going by a spec sheet. ChatGPT can actually be pretty funny if you let
 it riff freely)
 
-## Retries
+### Retries
 
 It can happen that the GPT, in a moment of confusion, the GPT doesn't forgets its core instructions and doesn't return valid JSON, or more generally an answer that can be parsed. This is a relatively rare case that is easily solved by re-asking the same query to the GPT.
 
