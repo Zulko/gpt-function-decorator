@@ -11,16 +11,14 @@ This library provides a decorator to define no-code functions that will be "run"
 from gpt_function_decorator import gpt_function
 
 @gpt_function
-def synonym(word, style='formal'):
-    """Return a synonym of the word in the given language style"""
-```
+def synonym(word, tone='formal'):
+    """Return a synonym of the word in the given tone."""
 
-And just like that, you have a new python function:
+# And just like that, you have a new python function:
 
-```python
-synonym("man", style="slang") # returns "dude"
-synonym("man", style="formal") # returns "gentleman"
-synonym("man", style="academic") # returns "individual"
+synonym("man", tone="slang") # returns "dude"
+synonym("man", tone="formal") # returns "male"
+synonym("man", tone="academic") # returns "individual"
 ```
 
 At each call the GPT (right now, any model from OpenAI, such as GPT-4o or GPT-4o-mini) looks at the function's parameters and  docstring, and infers what it should return for the given inputs. Yes, this is unreliable, and the answer can even be different every time. And no you might not want to use this in production if you work for a large bank. But leveraged at the right places this can replace hundreds of lines of code and save hours of scripting headaches.
@@ -57,11 +55,8 @@ from gpt_function_decorator import gpt_function
 @gpt_function
 def format_date(data):
     """Format the date as "yyyy-mm-dd" """
-```
 
-Let's try it!
-
-```python
+# Let's try it!
 format_date("December 9th, 1992.")
 
 # Returns:
