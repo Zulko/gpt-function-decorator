@@ -242,7 +242,7 @@ could_have_met("Chopin", celebrities)
 ['Napoleon', 'Mozart', 'Beethoven']
 ```
 
-Hmmm Mozart is wrong (he died 20 years before Chopin was born), and Jefferson is missing. 
+Hmmm "Mozart" is wrong (he died 20 years before Chopin was born), and "Jefferson" is missing. 
 One reason it's wrong is because the GPT doesn't take time to think through the information that it actually knows.
 
 Now let's ask for a thoughtful answer:
