@@ -349,7 +349,7 @@ chatbot going by a spec sheet. ChatGPT can actually be pretty funny if you let
 it riff freely)
 
 
-## How does gpt-functions-decorator work
+## How gpt-functions-decorator works
 
 This library doesn't do much, really, all the magic is in how good GPTs have become.
 When you define the following function and call:
