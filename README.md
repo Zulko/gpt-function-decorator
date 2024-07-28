@@ -26,7 +26,7 @@ At each call the GPT (right now, any model from OpenAI, such as GPT-4o or GPT-4o
 
 ## ... or use Marvin
 
-In a classic case of "woops I couldn't find a library that did this until I re-implemented it", I realized after pushing this online that [marvin](https://github.com/PrefectHQ/marvin/tree/main) has an equivalent feature:
+In a classic case of *"woops I couldn't find a library that did this until I re-implemented it"*, I realized after pushing this online that [marvin](https://github.com/PrefectHQ/marvin/) has an equivalent feature:
 
 ```python
 #pip import marvin
@@ -44,8 +44,8 @@ sentiment("I love working with Marvin!") # 0.8
 Here are some comparison points:
 - `gpt_function_decorator` is extremely lightweight in comparison. It's a single 200-lines python file that focuses on the decorator, and only depends on the `openai` library.
 - `gpt_function_decorator` has more opinionated parameters, making it possibly easier for beginners to switch between OpenAI models, force fast vs elaborate thinking of the GPT, and possibly an easier debug mode to print the raw responses.
-- Marvin is much better at declaring and ensuring the type/format of outputs
-- Marvin's chance of survival are greater at this point given the community 
+- Marvin is much better at declaring and ensuring the type/format of outputs, but on the flip side it is more difficult to use, in particular if your inputs are nested.
+- Marvin's chances of survival are greater at this point given the community and visibility (5k stars).
 
 
 ## Installation
@@ -182,7 +182,7 @@ def country_metadata(cities):
     """
 ```
 
-Even this way, though, it might happen that the GPT won't exactly stick to the schema. If this is critical, then you need to validate the output with a schema validation (like [pydantic](https://docs.pydantic.dev/latest/)) and try running the function again if the schema is wrong.
+Even this way, though, it might happen that the GPT won't exactly stick to the schema. If this is critical, then you need to validate the output with a schema validation (like [pydantic](https://docs.pydantic.dev/latest/)) and try running the function again if the schema is wrong. Or just use [marvin](https://github.com/PrefectHQ/marvin/) which supports the pydantic out of the box.
 
 ### Selecting the GPT model
 
