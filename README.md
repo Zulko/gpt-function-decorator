@@ -41,10 +41,10 @@ This package requires an OpenAI API key. To get one you need to open an account,
 The key will then be automatically detected by `gpt_function`. If you or your users ever need to juggle OpenAI clients with different API keys, projects, etc. you can override gpt_function's OpenAI client at any point of the execution with the following:
 
 ```python
-import gpt_function
+import gpt_function_decorator
 import openai
 ...
-gpt_function.SETTINGS["openai_client"] = OpenAI(api_key="...", project="...")
+gpt_function_decorator.SETTINGS["openai_client"] = OpenAI(api_key="...", ...)
 ```
 
 ### Basic usage:
