@@ -42,7 +42,7 @@ sentiment("I love working with Marvin!") # 0.8
 ```
 
 Here are some comparison points:
-- `gpt_function_decorator` is extremely lightweight in comparison. If focuses on just this feature and only depends on the `openai` package.
+- `gpt_function_decorator` is extremely lightweight in comparison. It's a single 200-lines python file that focuses on the decorator, and only depends on the `openai` library.
 - `gpt_function_decorator` has more opinionated parameters, making it possibly easier for beginners to switch between OpenAI models, force fast vs elaborate thinking of the GPT, and possibly an easier debug mode to print the raw responses.
 - Marvin is much better at declaring and ensuring the type/format of outputs
 - Marvin's chance of survival are greater at this point given the community 
