@@ -371,6 +371,9 @@ To run the tests:
 pytest
 ```
 
+## Contribute!
+
+This open-source project is hosted on Github under the Apache 2.0 license. Everyone is welcome to contribute!
 
 ## Thanks
 
