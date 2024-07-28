@@ -42,7 +42,7 @@ The key will then be automatically detected by `gpt_function`. If you or your us
 
 ```python
 import gpt_function_decorator
-import openai
+from openai import OpenAI
 ...
 gpt_function_decorator.SETTINGS["openai_client"] = OpenAI(api_key="...", ...)
 ```
