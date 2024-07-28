@@ -210,15 +210,17 @@ def could_have_met(person, celebrities):
     considering their birth and death dates"""
 
 # Call:
-celebrities = ["Napoleon", "Jefferson", "Julius Cesar", "Lady Gaga", "Beethoven"]
+celebrities = [
+    "Napoleon", "Jefferson", "Mozart", "Julius Cesar", "Lady Gaga", "Beethoven"
+]
 could_have_met("Chopin", celebrities)
 
 # Returns:
-['Beethoven']
+['Napoleon', 'Mozart', 'Beethoven']
 ```
 
-Hmmm that's not very complete. To be fair, the answer can change when you ask many times, but it's generally wrong.
-One reason it's wrong is because the GPT doesn't take time to think through the information it knows.
+Hmmm Mozart is wrong (he died 20 years before Chopin was born), and Jefferson is missing. 
+One reason it's wrong is because the GPT doesn't take time to think through the information that it actually knows.
 
 Now let's ask for a thoughtful answer:
 
@@ -353,6 +355,67 @@ TikTok fame, so Carl had to rely on pure talent.
 chatbot going by a spec sheet. ChatGPT can actually be pretty funny if you let
 it riff freely)
 
+
+## How does gpt-functions-decorator work
+
+This library doesn't do much, really, all the magic is in how good GPTs have become.
+When you define the following function and call:
+
+```python
+@gpt_function
+def translate(text: str, target="english"):
+    """Detect the source language and translate to the target.
+    
+    >>> translate("Bonjour tout le monde!")
+    {"lang": "french", translation: "Hi everyone!"}
+    """
+```
+
+Then `gpt_function` generates the following system prompt, in which it injects the whole function definition, asks GPT to simulate the function, and makes sure that the output will be easy to find and parse:
+
+
+```
+For the following python function, evaluate the user-provided input.
+
+`` `
+@gpt_function
+def translate(text: str, target_language="english"):
+    """Detect the source language, then translate to the target language.
+
+    >>> translate("Bonjour tout le monde!")
+    {"lang": "french", translation: "Hi everyone!"}
+    """
+`` `
+
+Write the result directly without providing any explanation.
+Provide the final output at the end as follows,
+where FUNCTION_OUTPUT is in JSON format:
+
+<ANSWER>
+{"result": FUNCTION_OUTPUT}
+</ANSWER>
+```
+
+Then when the user calls
+```python
+translate("Eine Katze, ein Hund und zwei Mäuse", target="spanish")
+```
+
+The user input sent to the GPT is simply
+
+```
+"Eine Katze, ein Hund und zwei M\u00e4use", target="spanish"
+```
+
+And the GPT answer:
+
+```
+<ANSWER>
+{"result": {"lang": "german", "translation": "Un gato, un perro y dos ratones"}}
+</ANSWER>
+```
+
+Which is then parsed using a regex and python's json parser.
 
 ## Limitations
 

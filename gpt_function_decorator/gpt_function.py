@@ -124,9 +124,10 @@ def gpt_function(
 
             # Generate the user input. For instance, if the user ran
             # `func(1, 2, c=3)`, this will generate the string "1, 2, c=3"
-            args_str = ", ".join(map(str, args))
-            kwargs_str = ", ".join([f"{str(k)}={str(v)}" for (k, v) in kwargs.items()])
-            user_input = ", ".join([args_str, kwargs_str])
+            # We use json.dumps so that strings are properly quoted and escaped
+            args_str = [json.dumps(a) for a in args]
+            kwargs_str = [f"{k}={json.dumps(v)}" for (k, v) in kwargs.items()]
+            user_input = ", ".join(args_str + kwargs_str)
 
             gpt_messages = [
                 {"role": "system", "content": system_prompt},
