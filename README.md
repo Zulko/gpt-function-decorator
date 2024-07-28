@@ -388,4 +388,4 @@ This open-source project is hosted on Github under the Apache 2.0 license. Every
 
 ## Thanks
 
-Thanks to Simon Wilkes for his [python library project template](https://github.com/simonw/python-lib).
+Thanks to Simon Willison for his [python library project template](https://github.com/simonw/python-lib).
