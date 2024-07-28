@@ -1,5 +1,8 @@
-from gpt_function import example_function
+from gpt_function import gpt_function
 
 
-def test_example_function():
-    assert example_function() == 2
+def test_that_at_least_it_doesnt_bug_when_called():
+
+    @gpt_function
+    def fibonacci(n):
+        """Bla bla bla"""
