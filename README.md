@@ -368,10 +368,19 @@ it riff freely)
 
 ### Retries
 
-It can happen that the GPT, in a moment of confusion, the GPT doesn't forgets its core instructions and doesn't return valid JSON, or more generally an answer that can be parsed. This is a relatively rare case that is easily solved by re-asking the same query to the GPT.
+It can happen that the GPT, in a moment of confusion, forgets its core instructions and doesn't return an answer than can be parsed on the Python side. This is relatively rare and is generally easily solved by re-asking the same query to the GPT.
 
 To simplify this task, `gpt_function` add a parameter `retries`. For instance `retries=2` asks the function to attempt the evaluation at least 3 times in total before erroring.
 
+
+### Limitations
+
+Ye be warned:
+
+- Only people who have an OpenAI API key will be able to use these functions.
+- GPTs have a token size limit so these functions will fail if your inputs or outputs are too large (long lists, etc.)
+- GPT answers can be changing and unreliable.
+- Calls to OpenAI-powered functions generally have a ~0.5-1 second of overhead then get slower as the input and output increase in size. So pure-python solutions will often beat GPT-based solutions. Sometimes it's better to just ask ChatGPT for python code and run the python code.
 
 ## How gpt-functions-decorator works
 
@@ -434,14 +443,6 @@ And the GPT answer:
 
 Which is then parsed using a regex and python's json parser.
 
-## Limitations
-
-Ye be warned:
-
-- Only people who have an OpenAI API key will be able to use these functions.
-- GPTs have a token size limit so these functions will fail if your inputs or outputs are too large (long lists, etc.)
-- GPT answers can be changing and unreliable.
-- Calls to OpenAI-powered functions generally have a ~0.5-1 second of overhead then get slower as the input and output increase in size. So pure-python solutions will often beat GPT-based solutions. Sometimes it's better to just ask ChatGPT for python code and run the python code.
 
 ## A future with GPT-powered functions?
 
