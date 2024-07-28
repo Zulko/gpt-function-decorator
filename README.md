@@ -1,14 +1,14 @@
-# GPT-function
+# gpt-function-decorator
 
-[![PyPI](https://img.shields.io/pypi/v/gpt-function.svg)](https://pypi.org/project/gpt-function/)
-[![Tests](https://github.com/zulko/gpt-function/actions/workflows/test.yml/badge.svg)](https://github.com/zulko/gpt-function/actions/workflows/test.yml)
-[![Changelog](https://img.shields.io/github/v/release/zulko/gpt-function?include_prereleases&label=changelog)](https://github.com/zulko/gpt-function/releases)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/zulko/gpt-function/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/gpt-function-decorator.svg)](https://pypi.org/project/gpt-function-decorator/)
+[![Tests](https://github.com/zulko/gpt-function-decorator/actions/workflows/test.yml/badge.svg)](https://github.com/zulko/gpt-function-decorator/actions/workflows/test.yml)
+[![Changelog](https://img.shields.io/github/v/release/zulko/gpt-function-decorator?include_prereleases&label=changelog)](https://github.com/zulko/gpt-function-decorator/releases)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/zulko/gpt-function-decorator/blob/main/LICENSE)
 
 This library provides a  lets you write functions that will be "run" by a GPT (right, now, only OpenAI models). The GPT simply looks at the function (parameters definition and docstring) and imagines what it returns for some given inputs. 
 
 ```python
-from gpt_function import gpt_function
+from gpt_function_decorator import gpt_function
 
 @gpt_function
 def synonym(word, style):
@@ -27,7 +27,7 @@ Yes GPTs are unreliable, their answer can be different every time, and no you mi
 
 Install this library using `pip`:
 ```bash
-pip install gpt-function
+pip install gpt-function-decorator
 ```
 
 ## Usage
@@ -52,7 +52,7 @@ gpt_function.SETTINGS["openai_client"] = OpenAI(api_key="...", project="...")
 In its most basic form, just import the decorator, and apply it to a function with a docstring:
 
 ```python
-from gpt_function import gpt_function
+from gpt_function_decorator import gpt_function
 
 @gpt_function
 def fibonacci(n):
@@ -358,7 +358,7 @@ To contribute to this library, first checkout the code.
 Then create a new virtual environment:
 
 ```bash
-cd gpt-function
+cd gpt-function-decorator
 python -m venv venv
 source venv/bin/activate
 ```

@@ -1,5 +1,5 @@
 [project]
-name = "gpt-function"
+name = "gpt-function-decorator"
 version = "0.1"
 description = "Decorator to define GPT-powered functions"
 readme = "README.md"
@@ -18,10 +18,10 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project.urls]
-Homepage = "https://github.com/zulko/gpt-function"
-Changelog = "https://github.com/zulko/gpt-function/releases"
-Issues = "https://github.com/zulko/gpt-function/issues"
-CI = "https://github.com/zulko/gpt-function/actions"
+Homepage = "https://github.com/zulko/gpt-function-decorator"
+Changelog = "https://github.com/zulko/gpt-function-decorator/releases"
+Issues = "https://github.com/zulko/gpt-function-decorator/issues"
+CI = "https://github.com/zulko/gpt-function-decorator/actions"
 
 
 [project.optional-dependencies]
