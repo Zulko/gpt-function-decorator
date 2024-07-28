@@ -47,7 +47,7 @@ import openai
 gpt_function.SETTINGS["openai_client"] = OpenAI(api_key="...", project="...")
 ```
 
-#### Basic usage:
+### Basic usage:
 
 In its most basic form, just import the decorator, and apply it to a function with a docstring:
 
@@ -78,7 +78,7 @@ find_words_in_text(text, categories=["animal", "food"])
 ['dog', 'apple', 'pear']
 ```
 
-#### Controlling the output format
+### Controlling the output format
 
 The inputs and outputs can be any usual format, str, list, dict, number. Think "anything that can be represented through JSON".
 
@@ -128,7 +128,7 @@ country_metadata(["France", "Japan", "Peru"])
  {'name': 'Peru', 'capital': 'Lima', 'lang': 'Spanish', 'code': '+51'}]
 ```
 
-#### Selecting the GPT model
+### Selecting the GPT model
 
 By default, `gpt_function` uses `gpt-4o-mini` under the hood, which is 10 times cheaper than `gpt-4o`, much faster and just almost as good (although `gpt-4o` knows more, makes less mistakes, and sometimes cracks better jokes).
 
@@ -187,7 +187,7 @@ deduplicate_list_of_celebrities([
 ```
 
 
-#### Asking python to "think through" an answer
+### Asking python to "think through" an answer
 
 By default, `gpt_function` tells the GPT *"answer directly without any explanations"*.
 When setting `@gpt_function(think_through=True)`, however, it will tell the GPT *"Think carefully through the answer and if the function docstring suggests steps, take these steps"*. This is a mechanism that makes the answer slower and more expensive, but also much higher quality as it enables the GPTs to reason about tasks.
