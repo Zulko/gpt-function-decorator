@@ -21,7 +21,7 @@ synonym("man", tone="formal") # returns "male"
 synonym("man", tone="academic") # returns "individual"
 ```
 
-At each call the GPT (right now, any model from OpenAI, such as GPT-4o or GPT-4o-mini) looks at the function's parameters and  docstring, and infers what it should return for the given inputs. Yes, this is unreliable, and the answer can even be different every time. And no you might not want to use this in production if you work for a large bank. But leveraged at the right places this can replace hundreds of lines of code and save hours of scripting headaches.
+At each call the GPT (right now, any model from OpenAI, such as GPT-4o or GPT-4o-mini) looks at the function's parameters and  docstring, and infers what it should return for the given inputs. Yes, this is unreliable, the answer can even change between calls. But leveraged for the right use-cases, such functions can replace hundreds of lines of code and save hours of scripting headaches.
 
 ## Installation
 
