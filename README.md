@@ -135,6 +135,29 @@ country_metadata(["France", "Japan", "Peru"])
  {'name': 'Peru', 'capital': 'Lima', 'lang': 'Spanish', 'code': '+51'}]
 ```
 
+Or you can be fully explicit
+
+```python
+@gpt_function
+def country_metadata(cities):
+    """Return the capital city, language, and the calling code of each country
+    using this output format:
+
+    [
+        {
+            name: str,
+            capital: str
+            lang: str,
+            calling_code: int
+
+        }
+        ...
+    ]
+    """
+```
+
+Even this way, though, it might happen that the GPT won't exactly stick to the schema. If this is critical, then you need to validate the output with a schema validation (like [pydantic](https://docs.pydantic.dev/latest/)) and try running the function again if the schema is wrong.
+
 ### Selecting the GPT model
 
 By default, `gpt_function` uses `gpt-4o-mini` under the hood, which is 10 times cheaper than `gpt-4o`, much faster and just almost as good (although `gpt-4o` knows more, makes less mistakes, and sometimes cracks better jokes).
@@ -347,6 +370,12 @@ TikTok fame, so Carl had to rely on pure talent.
 (there's probably funnier jokes to crack, but you can't expect much from a
 chatbot going by a spec sheet. ChatGPT can actually be pretty funny if you let
 it riff freely)
+
+## Retries
+
+It can happen that the GPT, in a moment of confusion, the GPT doesn't forgets its core instructions and doesn't return valid JSON, or more generally an answer that can be parsed. This is a relatively rare case that is easily solved by re-asking the same query to the GPT.
+
+To simplify this task, `gpt_function` add a parameter `retries`. For instance `retries=2` asks the function to attempt the evaluation at least 3 times in total before erroring.
 
 
 ## How gpt-functions-decorator works
