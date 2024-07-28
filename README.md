@@ -55,17 +55,17 @@ In its most basic form, just import the decorator, and apply it to a function wi
 from gpt_function_decorator import gpt_function
 
 @gpt_function
-def fibonacci(n):
-    """Return the n first fibonacci numbers"""
+def format_date(data):
+    """Format the date as "yyyy-mm-dd" """
 ```
 
 Let's try it!
 
 ```python
-fibonacci(10)
+format_date("December 9th, 1992.")
 
 # Returns:
-[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+'1992-12-09'
 ```
 
 Functions defined with the decorator can have multiple arguments and keyword arguments.
@@ -118,10 +118,10 @@ If you want to really control the output schema you must provide it in some way.
 @gpt_function
 def country_metadata(cities):
     """Return the capital city, language, and the calling code of each country
-    
+
     Example
     -------
-    
+
     >>> country_metadata(["France"])
     >>> [{'name': 'France', 'capital': 'Paris', 'lang': 'French', 'code': '+33'}]
     """
@@ -357,9 +357,60 @@ it riff freely)
 ## Limitations
 
 Ye be warned:
+
 - Only people who have an OpenAI API key will be able to use these functions.
-- GPT answers can be changing and unreliable.
 - GPTs have a token size limit so these functions will fail if your inputs or outputs are too large (long lists, etc.)
+- GPT answers can be changing and unreliable.
+- Calls to OpenAI-powered functions generally have a ~0.5-1 second of overhead then get slower as the input and output increase in size. So pure-python solutions will often beat GPT-based solutions. Sometimes it's better to just ask ChatGPT for python code and run the python code.
+
+## A future with GPT-powered functions?
+
+GPTs are not yet fast and cheap enough to be used anywhere, but when they are it will transform a lot of how we write code (assuming we still code).
+
+For instance instead of having developers write zillions of messages to help users troubleshoot errors, we'll use a function like this:
+
+```python
+@gpt_function(think_through=True)
+def help_troubleshoot(error_traceback: str) -> str:
+    """Return a short analysis of the Python error from the provided traceback.
+    
+    Example
+    ------ 
+    >>> help_troubleshoot("some\ntraceback")
+    "This error generally happens (...). Maybe the variable `x` is not set (...)"
+    """
+```
+
+With this we can write a function that queries webpages and looks into the issue if need be:
+
+```python
+import requests
+import traceback
+
+
+def query_webpages_and_help_troubleshoot(url):
+    try:
+        requests.get(url)
+    except Exception as error:
+        troubleshooting = help_troubleshoot(traceback.format_exc())
+        raise ValueError(troubleshooting) from error
+```
+
+And now we can run it into a wall:
+
+```python
+query_webpages_and_help_troubleshoot("https://wykipedia.com")
+
+# Raises:
+"""
+< traceback with ConnectionError, MaxRetryError, etc... />
+
+ValueError: The error indicates a failure to resolve the hostname
+`wykipedia.com`. This generally means that the domain name is either
+incorrect or does not exist. A common typo might be confusing it with
+the correct URL `wikipedia.com`. Please verify the URL and try again.
+"""
+```
 
 
 ## Development
