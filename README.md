@@ -196,7 +196,6 @@ from typing_extensions import TypedDict
 
 
 class City:
-    
     def __init__(self, name, country):
         self.name = name
         self.country = country
@@ -206,12 +205,12 @@ class City:
         return f"{self.name} ({self.country})"
     
     @gpt_function
-    def tell_event(self, period) -> list[TypedDict("o", {"year": int, "event": str})]:
+    def events(self, period) -> list[TypedDict("o", {"year": int, "event": str})]:
         """List events from {period} that happened in {self.full_name}"""
 
 city = City("Boston", "England")
-city.tell_event(period="14th century", gpt_model="gpt-4o-2024-08-06")
 
+city.events(period="14th century", gpt_model="gpt-4o-2024-08-06")
 # [{'year': 1313, 'event': 'Boston fairs are among the busiest...'},
 #  {'year': 1390, 'event': 'Boston Guildhall is constructed...'},
 #  ...]
