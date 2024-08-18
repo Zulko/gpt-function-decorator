@@ -211,14 +211,14 @@ list_movies(
 # ['Django Unchained', 'Once Upon a Time in Hollywood']
 ```
 
-### Asking the GPT to "think through" an answer
+### Asking the GPT for a reasoned answer
 
-Consider this problem:
+Consider this function:
 
 ```python
 @gpt_function
-def could_have_met(person, celebrities) -> list[str]:
-    """List the celebrities in {celebrities} that that {person} could have met."""
+def could_have_met(person: str, celebrities: list) -> list[str]:
+    """List the celebrities in {celebrities} that {person} could have met."""
 
 celebrities = [
     "Napoleon", "Jefferson", "Mozart", "Julius Cesar", "Peggy Lee", "Beethoven"
@@ -226,14 +226,14 @@ celebrities = [
 answer = could_have_met("Chopin", celebrities)
 ```
 
-Despite the short prompt, the request would require some reasoning from the GPT : first listing everyone's birth and death years, then checking who overlapped with Chopin. It turns out `gpt4-o-mini` absolutely fails at this: its answers would typically include Peggy Lee, who lived in a different century.
+Despite the short prompt, this would require some reasoning from the GPT : first listing everyone's birth and death years, then checking who overlapped with Chopin. It turns out `gpt4-o-mini` absolutely fails at this: its answers would typically include Peggy Lee, who lived in a different century.
 
 
-To get us smarter answer, we provide a `ReasonedAnswer` constructor for the output schema. Concretely, it requests the GPT answer to be a have two fields, `reasoning` and `result`.
+To get a smarter answer, we provide a `ReasonedAnswer` constructor for the output schema. Concretely, it requests the GPT answer to be a have two fields, `reasoning` and `result`.
 
-This causes the answers to be more verbose (and therefore slower and more costly) but resolves many issues:
+This causes the answers to be more verbose, which is slower and more costly but also resolves many issues:
 - The `reasoning` field gives the GPT room to "think through" the problem and produce better answers.
-- It is now possible for the user to see what the GPT's "reasoning" was, and whether a wrong answer was caused by a lack of knowledge, logics, etc.
+- It is now possible for the user to see what the GPT's "reasoning" was, and whether a wrong answer was caused by a lack of knowledge, or logics, etc.
 - It reduces the risk that some of GPT's reasoning and formatting ends up polluting the result's schema.
 
 So let's just change our function's output to `ReasonedAnswer(list[str])` and observe the improvement:
@@ -270,7 +270,7 @@ print (answer.reasoning)
 
 
 
-### Limitations
+## Limitations
 
 Ye be warned:
 
