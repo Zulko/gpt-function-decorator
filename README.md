@@ -5,14 +5,14 @@
 [![Changelog](https://img.shields.io/github/v/release/zulko/gpt-function-decorator?include_prereleases&label=changelog)](https://github.com/zulko/gpt-function-decorator/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/zulko/gpt-function-decorator/blob/main/LICENSE)
 
-This library provides a decorator to define no-code functions that will be "run" by a GPT:
+This library provides a decorator to define no-code functions that will be "run" by ChatGPT:
 
 ```python
 from gpt_function_decorator import gpt_function
 
 @gpt_function
 def synonym(word, tone='formal'):
-    """Return a synonym of the word in the given tone."""
+    """Return a {tone} synonym of {word}."""
 
 # And just like that, you have a new python function:
 
@@ -21,12 +21,25 @@ synonym("man", tone="formal") # returns "male"
 synonym("man", tone="academic") # returns "individual"
 ```
 
-At each call the GPT (right now, any model from OpenAI, such as GPT-4o or GPT-4o-mini) looks at the function's parameters and  docstring, and infers what it should return for the given inputs. Yes, this is unreliable, the answer can even change between calls. But leveraged for the right use-cases, such functions can replace hundreds of lines of code and save hours of scripting headaches.
+Here is another one I love (I built a [whole website](https://github.com/Zulko/composer-timelines) on top of it):
+
+```python
+@gpt_function
+def list_famous_composers(n) -> list[str]:
+    "Return the {n} most famous composers."
+    
+list_famous_composers(20)
+# Returns ['Johann Sebastian Bach',  'Ludwig van Beethoven', ...]
+```
+
+The library relies on the new OpenAI [structured outputs](https://platform.openai.com/docs/guides/structured-outputs/introduction) which can generate output with complex, composite output schemas, and adds automation so the types don't have to be defined with Pydantic.
+
+Yes, using ChatGPT results in unpredictable and unreliable answers. But leveraged on the right use-cases, such functions can replace hundreds of lines of code and save hours of scripting headaches.
 
 
-## ... or use Marvin
+## Acknowledging Marvin
 
-In a classic case of *"woops I couldn't find a library that did this until I re-implemented it"*, I realized after pushing this online that [marvin](https://github.com/PrefectHQ/marvin/) has an equivalent feature:
+In a classic case of *"woops I couldn't find a library that did this until I developed my own"*, I realized after pushing this online that [marvin](https://github.com/PrefectHQ/marvin/) had had an equivalent feature for over a year:
 
 ```python
 #pip import marvin
@@ -41,29 +54,15 @@ def sentiment(text: str) -> float:
 sentiment("I love working with Marvin!") # 0.8
 ```
 
-Here are some comparison points:
-- `gpt_function_decorator` is extremely lightweight in comparison. It's a single 200-lines python file that focuses on the decorator, and only depends on the `openai` library.
-- `gpt_function_decorator` has more opinionated parameters, making it possibly easier for beginners to switch between OpenAI models, force fast vs elaborate thinking of the GPT, and possibly an easier debug mode to print the raw responses.
-- Marvin is much better at declaring and ensuring the type/format of outputs, but on the flip side it is more difficult to use, in particular if your inputs are nested.
-- Marvin's chances of survival are greater at this point given the community and visibility (5k stars).
+Marvin's huge advantage was the possibility to enforce the output schema, however this is now a native feature of the OpenAI API, which makes the `gpt_function` much more lightweight (the core logics are really ~40 lines of code, with `openai` as the only dependency).
 
 
-## Installation
+## Installation and setup
 
 Install this library using `pip`:
 ```bash
 pip install gpt-function-decorator
 ```
-
-## Usage
-## Installation
-
-Install this library using `pip`:
-```bash
-pip install gpt-function-decorator
-```
-
-### Setting up an OpenAI API key
 
 This package requires an OpenAI API key. To get one you need to open an account, add credits to your account (2$ should last you a long time), generate an API key, and store it into an environment variable `OPENAI_API_KEY` (see [the OpenAI docs](https://platform.openai.com/docs/quickstart)).
 
@@ -76,16 +75,20 @@ from openai import OpenAI
 gpt_function_decorator.SETTINGS["openai_client"] = OpenAI(api_key="...", ...)
 ```
 
-### Basic usage:
+## Usage:
 
-In its most basic form, just import the decorator, and apply it to a function with a docstring:
+
+### Basics
+
+In its most basic form, just import the decorator, and apply it to a function with a docstring.
+By default, the function will return a string.
 
 ```python
 from gpt_function_decorator import gpt_function
 
 @gpt_function
-def format_date(data):
-    """Format the date as "yyyy-mm-dd" """
+def format_date(date):
+    """Format {date} as yyyy-mm-dd"""
 
 # Let's try it!
 format_date("December 9th, 1992.")
@@ -94,315 +97,164 @@ format_date("December 9th, 1992.")
 '1992-12-09'
 ```
 
-Functions defined with the decorator can have multiple arguments and keyword arguments.
+Functions defined with the decorator can have multiple arguments and keyword arguments, and you can specify the returned type with the usual type hint  `->`
 
 ```python
 @gpt_function
-def find_words_in_text(text, categories, max_words=10):
-    """Return at most max_words of the text from the provided categories"""
+def find_words_in_text(text, categories, limit=3) -> list[str]:
+    """Return at most {limit} words from "{text}" related to {categories}"""
 
 # Call:
-text = "The dog in the house ate an apple and a pear from the fridge"
+text = "The sailor's dog and cat ate a basket of apples and biscuits"
 find_words_in_text(text, categories=["animal", "food"])
 
 # Returns:
-['dog', 'apple', 'pear']
+['dog', 'cat', 'apples']
 ```
 
-### Controlling the output format
+### Advanced output formatting
 
-The inputs and outputs can be any usual format, str, list, dict, number. Think "anything that can be represented through JSON".
+You can provide any simple out format directly (`-> int`, `-> float`, etc.). Lists should always declare the element type (for instance `list[str]`). The OpenAI API doesn't seem to like types like `tuple` too much, and will complain if you have a type like `Dict` but don't specify the keys.
 
-The basic way to control the output is to describe it. You can go with a very minimal description and let the GPT decide on the details:
+If you really want to specify a `Dict` output with minimal boilerplate you can use the `TypedDict`: 
 
 ```python
+from typing_extensions import TypedDict # or just typing, for Python>=3.12
+
 @gpt_function
-def country_metadata(country):
-    """Return the capital city, language, and calling code of each country"""
+def first_us_presidents(n) -> list[TypedDict("i", dict(birth_year=int, name=str))]:
+    """Return the {n} first US presidents with their birth year"""
 
-# Call:
-country_metadata(["France", "Japan", "Peru"])
-
-# Returns:
-[{'country': 'France',
-  'capital': 'Paris',
-  'language': 'French',
-  'calling_code': '+33'},
- {'country': 'Japan',
-  'capital': 'Tokyo',
-  'language': 'Japanese',
-  'calling_code': '+81'},
- {'country': 'Peru',
-  'capital': 'Lima',
-  'language': 'Spanish',
-  'calling_code': '+51'}]
+first_us_presidents(3)
+# [{'year': 1732, 'name': 'George Washington'},
+#  {'year': 1735, 'name': 'John Adams'},
+#  {'year': 1751, 'name': 'Thomas Jefferson'}]
 ```
 
-If you want to really control the output schema you must provide it in some way. One nice way is with an example in the docstring:
+But really the cleanest (and OpenAI-officially-supported) way is to provide a Pydantic model:
 
 ```python
+from pydantic import BaseModel
+
+class USPresident(BaseModel):
+    name: str
+    birth_year: int
+
 @gpt_function
-def country_metadata(cities):
-    """Return the capital city, language, and the calling code of each country
+def first_us_presidents(n) -> list[USPresident]:
+    """Return the {n} first US presidents with their birth year"""
 
-    Example
-    -------
-
-    >>> country_metadata(["France"])
-    >>> [{'name': 'France', 'capital': 'Paris', 'lang': 'French', 'code': '+33'}]
-    """
-
-# Call:
-country_metadata(["France", "Japan", "Peru"])
-
-# Returns:
-[{'name': 'France', 'capital': 'Paris', 'lang': 'French', 'code': '+33'},
- {'name': 'Japan', 'capital': 'Tokyo', 'lang': 'Japanese', 'code': '+81'},
- {'name': 'Peru', 'capital': 'Lima', 'lang': 'Spanish', 'code': '+51'}]
+first_us_presidents(3)
+# [President(name='George Washington', birth_year=1732),
+#  President(name='John Adams', birth_year=1735),
+#  President(name='Thomas Jefferson', birth_year=1743)]
 ```
 
-Or you can be fully explicit
+With Pydantic models you can have output schemas as nested and complex as you like (see [the docs](https://cookbook.openai.com/examples/structured_outputs_intro)), although it seems that the more difficult you'll make it for the GPT to understand how to fill the schema, the longer it's take.
+
+### Use in class methods
+
+Class methods can use the `gpt_function`. The `self` can then be used in the docstring but beware that only access to attributes, not other methods, is supported at the moment (attributes computed via `property` are also supported)
 
 ```python
-@gpt_function
-def country_metadata(cities):
-    """Return the capital city, language, and the calling code of each country
-    using this output format:
+from gpt_function_decorator import gpt_function
+from typing_extensions import TypedDict
+class City:
+    
+    def __init__(self, name, country):
+        self.name = name
+        self.country = country
+    
+    @property
+    def full_name(self):
+        return f"{self.name} ({self.country})"
+    
+    @gpt_function
+    def tell_event(self, period) -> list[TypedDict("o", {"year": int, "event": str})]:
+        """List events from {period} that happened in {self.full_name}"""
 
-    [
-        {
-            name: str,
-            capital: str
-            lang: str,
-            calling_code: int
+city = City("Boston", "England")
+city.tell_event(period="14th century", gpt_model="gpt-4o-2024-08-06")
 
-        }
-        ...
-    ]
-    """
+# [{'year': 1313, 'event': 'Boston fairs are among the busiest...'},
+#  {'year': 1390, 'event': 'Boston Guildhall is constructed...'},
+#  ...]
 ```
 
-Even this way, though, it might happen that the GPT won't exactly stick to the schema. If this is critical, then you need to validate the output with a schema validation (like [pydantic](https://docs.pydantic.dev/latest/)) and try running the function again if the schema is wrong. Or just use [marvin](https://github.com/PrefectHQ/marvin/) which supports the pydantic out of the box.
+### Controlling the GPT model
 
-### Selecting the GPT model
-
+The `gpt_decorator` adds two parameters (and docstring documentation to got with it) to your function:
+- `gpt_model`: this allows the function's user to switch between `gpt-4o-mini` (the default, fast and cheap) and `gpt-4o` (any compatible version).
+- `gpt_system_prompt`: this enables the user to tweak the answer as they would like by asking the GPT to focus on some aspects, or to roleplay.
 By default, `gpt_function` uses `gpt-4o-mini` under the hood, which is 10 times cheaper than `gpt-4o`, much faster and just almost as good (although `gpt-4o` knows more, makes less mistakes, and sometimes cracks better jokes).
 
-You can change the GPT model used via the `gpt_model` argument:
-
-```python
-@gpt_function(gpt_model="gpt-4o")
-def list_life_events(person):
-    """Return a list of the person's life events (year, city, long_summary).
-    Give as many details as possible in the long summary."""
-
-# Call:
-list_life_events("Mozart")
-
-# Returns:
-[{'year': 1756,
-  'city': 'Salzburg',
-  'long_summary': 'Wolfgang Amadeus Mozart was born on January 27, 1756, ...'},
-  ...]
-```
-
-Note that, just like for any other parameter of `gpt_function`, users can override it when calling the function:
-
-```python
-list_life_events("Mozart", model="gpt-4o-mini")
-```
-
-In general, I find `gpt-4o` superior when it comes to reasoning over general culture. This kind of task:
-
-```python
-@gpt_function(gpt_model='gpt-4o', think_through=True)
-def deduplicate_list_of_celebrities(celebrities):
-    """Detect and remove duplicates in the list of celebrities provided
-    (consider aliases and diminutives)."""
-
-# Call:
-deduplicate_list_of_celebrities([
-    "Claude Debussy",
-    "Leo Messi",
-    "Leonardo diCaprio",
-    "Leonardo da Vinci",
-    "Clark Kent",
-    "Superman",
-    "Leo diCaprio",
-    "Lionel Messi",
-    "Eminem",
-    "Marshall Mathers",
-    "Claude Achille Debussy"
-])
-
-# Result 
-['Lionel Messi',
- 'Claude Debussy',
- 'Leonardo da Vinci',
- 'Leonardo diCaprio',
- 'Clark Kent',
- 'Eminem']
-```
-
-
-### Asking python to "think through" an answer
-
-By default, `gpt_function` tells the GPT *"answer directly without any explanations"*.
-When setting `@gpt_function(think_through=True)`, however, it will tell the GPT *"Think carefully through the answer and if the function docstring suggests steps, take these steps"*. This is a mechanism that makes the answer slower and more expensive, but also much higher quality as it enables the GPTs to reason about tasks.
-
-For instance consider this task:
 
 ```python
 @gpt_function
-def could_have_met(person, celebrities):
-    """Return the celebrities in the list that the person could have met,
-    considering their birth and death dates"""
+def list_movies(actor, n=2) -> list[str]:
+    """Return the titles of at most {n} great movies featuring {actor}."""
+    
+list_movies("Leonardo DiCaprio")
+# ['The Revenant', 'Inception']
 
-# Call:
+
+list_movies(
+    "Leonardo DiCaprio",
+    gpt_system_prompt="Don't list movies released before 2020.",
+    gpt_model="gpt-4o-2024-08-06" #gpt-4o knows more than -mini
+)
+# ['Django Unchained', 'Once Upon a Time in Hollywood']
+```
+
+### Asking the GPT to "think through" an answer
+
+Consider this problem:
+
+```python
+@gpt_function
+def could_have_met(person, celebrities) -> list[str]:
+    """List the celebrities in {celebrities} that that {person} could have met."""
+
 celebrities = [
-    "Napoleon", "Jefferson", "Mozart", "Julius Cesar", "Lady Gaga", "Beethoven"
+    "Napoleon", "Jefferson", "Mozart", "Julius Cesar", "Peggy Lee", "Beethoven"
 ]
-could_have_met("Chopin", celebrities)
-
-# Returns:
-['Napoleon', 'Mozart', 'Beethoven']
+answer = could_have_met("Chopin", celebrities)
 ```
 
-Hmmm "Mozart" is wrong (he died 20 years before Chopin was born), and "Jefferson" is missing. 
-One reason it's wrong is because the GPT doesn't take time to think through the information that it actually knows.
+Despite the short prompt, this problem requires multiple steps: first list everyone's birth and death years, then see who overlapped with Chopin. It turns out `gpt4-o-mini` absolutely fails at this. (typically `[Mozart, Peggy Lee]`)
 
-Now let's ask for a thoughtful answer:
 
+This library provides a `ReasonedAnswer` constructor for the output schema. Concretely, it simply requests the answer to be a Pydantic model with two fields, `reasoning` and `result`.
 
 ```python
-@gpt_function(think_through=True)
-def could_have_met_thoughtful_version(person, celebrities):
-    """Return the celebrities in the list that the person could have met,
-    considering their birth and death dates"""
+from gpt_function_decorator import gpt_function, ReasonedAnswer
 
-# Call:
-could_have_met_thoughtful_version("Chopin", celebrities)
+@gpt_function
+def could_have_met(person, celebrities) -> ReasonedAnswer(list[str]):
+    """List the celebrities in {celebrities} that that {person} could have met."""
 
-# Returns:
-['Napoleon', 'Jefferson', 'Beethoven']
+celebrities = [
+    "Napoleon", "Jefferson", "Mozart", "Julius Cesar", "Peggy Lee", "Beethoven"
+]
 
+answer = could_have_met("Chopin", celebrities)
+print (answer.result)
+# ['Napoleon', 'Jefferson', 'Beethoven']
+
+print (answer.reasoning)
+# Frédéric Chopin was born in 1810 and died in 1849. To determine which
+# celebrities he could have met, we need to consider the lifespans of
+# each individual listed:  
+# - Napoleon Bonaparte (1769-1821) could have met Chopin.  
+# - Thomas Jefferson (1743-1826) could have met Chopin.  
+# - Wolfgang Amadeus Mozart (1756-1791) could not have met Chopin,
+#   as he died before Chopin was born.  
+# - Julius Caesar (100 BC-44 BC) definitely could not have met Chopin,
+#   as he lived in ancient times.  
+# - Peggy Lee (1920-2002) could not have met Chopin, as she was born
+#   after Chopin died.  
+# - Ludwig van Beethoven (1770-1827) could have met Chopin.  
 ```
-
-It did it! Here again, if you ask many times you will have wrong answers, but the probability of success is much higher.
-You can see the thinking happening by adding `debug=True` to the function call, which returns the full answer from the GPT:
-
-```python
-could_have_met_thoughtful_version("Chopin", celebrities, debug=True)
-
-# prints
-"""
-(...)
-To evaluate whether Frédéric Chopin could have met the celebrities listed, we
-need to consider the birth and death dates of Chopin and each of the celebrities
-mentioned.
-
-1. **Frédéric Chopin**: Born on March 1, 1810, and died on October 17, 1849.
-
-2. **Celebrities**:
-   - **Napoleon Bonaparte**: Born on August 15, 1769, and died on May 5, 1821.
-(Could have met)
-   - **Thomas Jefferson**: Born on April 13, 1743, and died on July 4, 1826.
-(Could have met)
-   - **Wolfgang Amadeus Mozart**: Born on January 27, 1756, and died on December
-5, 1791. (Could not have met)
-   - **Julius Caesar**: Born on July 12, 100 BC, and died on March 15, 44 BC.
-(Could not have met)
-   - **Lady Gaga**: Born on March 28, 1986. (Could not have met)
-   - **Ludwig van Beethoven**: Born on December 17, 1770, and died on March 26,
-1827. (Could have met)
-
-Based on the analysis, the celebrities that Chopin could have met (those who
-lived during his lifespan) are Napoleon Bonaparte, Thomas Jefferson, and Ludwig
-van Beethoven.
-(...)
-"""
-```
-
-Where the `think_through` option shines is when you explicitly guide the GPT bot through the steps of a process.
-
-```python
-
-@gpt_function(think_through=True)
-def shopping_list_for_national_day_food(country):
-    """Return a shopping list for the national day of this country
-    
-    Step 1: List a starter, a mains and a dessert from this country.
-    Step 2: List the ingredients for each dish of Step 1
-    Step 3: Generate a shopping list where each Step 2 ingredient only appears once.
-    Step 4: Generate a final shopping list without any unhealthy ingredient of Step 3.
-    
-    Example
-    -------
-    
-    >>> shopping_list_for_national_day_food("France")
-    >>> {
-        "starter": "friand",
-        "main": "frog legs",
-        "dessert": "creme-brulee",
-        "shopping_list": ["flour", "frog legs", "eggs", ...]
-    }
-    """
-
-# Call:
-shopping_list_for_national_day_food("Italy", debug=True)
-
-# Returns:
-{'starter': 'Bruschetta',
- 'main': 'Pasta Carbonara',
- 'dessert': 'Tiramisu',
- 'shopping_list': ['Bread',
-  'Tomatoes',
-  'Basil',
-  '...'
-]}
-# ... and prints the reasoning over all steps.
-```
-
-Another application of the step process is the rewriting of a text until it fits some specs. For instance GPT4 will edit very freely if you ask it to "add humor to a text" (it may write a much longer text, lose facts, joke about tragic events etc.) but we can control the output more finely by commanding a series of rewrites:
-
-
-```python
-@gpt_function(think_through=True, gpt_model="gpt-4o")
-def add_humor(text):
-    """Rewrite the text with more humor.
-    
-    Step 1: Rewrite the text with humor. Be funny!
-    Step 2: Copy Step 1 without any joke about tragic events.
-    Step 3: Copy Step 2 without the weakest jokes if the text is over 60 words
-    Step 4: Copy Step 3 with any information from the original that got lost.
-    """
-    
-add_humor("""
-In 1806, at the age of 15, Carl Czerny was selected by Beethoven
-to perform the premiere of his Piano Concerto No. 1 in Vienna, Austria.
-""")
-
-
-# Response
-
-"""
-In 1806, a 15-year-old Carl Czerny probably had bigger worries than what to
-wear to prom — he was chosen by Beethoven himself to premiere the Piano
-Concerto No. 1 in Vienna, Austria. Imagine the pressure! And this was before
-TikTok fame, so Carl had to rely on pure talent.
-"""
-```
-
-(there's probably funnier jokes to crack, but you can't expect much from a
-chatbot going by a spec sheet. ChatGPT can actually be pretty funny if you let
-it riff freely)
-
-### Retries
-
-It can happen that the GPT, in a moment of confusion, forgets its core instructions and doesn't return an answer than can be parsed on the Python side. This is relatively rare and is generally easily solved by re-asking the same query to the GPT.
-
-To simplify this task, `gpt_function` add a parameter `retries`. For instance `retries=2` asks the function to attempt the evaluation at least 3 times in total before erroring.
-
 
 ### Limitations
 
@@ -411,68 +263,7 @@ Ye be warned:
 - Only people who have an OpenAI API key will be able to use these functions.
 - GPTs have a token size limit so these functions will fail if your inputs or outputs are too large (long lists, etc.)
 - GPT answers can be changing and unreliable.
-- Calls to OpenAI-powered functions generally have a ~0.5-1 second of overhead then get slower as the input and output increase in size. So pure-python solutions will often beat GPT-based solutions. Sometimes it's better to just ask ChatGPT for python code and run the python code.
-
-## How gpt-functions-decorator works
-
-This library doesn't do much, really, all the magic is in how good GPTs have become.
-When you define the following function and call:
-
-```python
-@gpt_function
-def translate(text: str, target="english"):
-    """Detect the source language and translate to the target.
-    
-    >>> translate("Bonjour tout le monde!")
-    {"lang": "french", translation: "Hi everyone!"}
-    """
-```
-
-Then `gpt_function` generates the following system prompt, in which it injects the whole function definition, asks GPT to simulate the function, and makes sure that the output will be easy to find and parse:
-
-
-```
-For the following python function, evaluate the user-provided input.
-
-`` `
-@gpt_function
-def translate(text: str, target_language="english"):
-    """Detect the source language, then translate to the target language.
-
-    >>> translate("Bonjour tout le monde!")
-    {"lang": "french", translation: "Hi everyone!"}
-    """
-`` `
-
-Write the result directly without providing any explanation.
-Provide the final output at the end as follows,
-where FUNCTION_OUTPUT is in JSON format:
-
-<ANSWER>
-{"result": FUNCTION_OUTPUT}
-</ANSWER>
-```
-
-Then when the user calls
-```python
-translate("Eine Katze, ein Hund und zwei Mäuse", target="spanish")
-```
-
-The user input sent to the GPT is simply
-
-```
-"Eine Katze, ein Hund und zwei M\u00e4use", target="spanish"
-```
-
-And the GPT answer:
-
-```
-<ANSWER>
-{"result": {"lang": "german", "translation": "Un gato, un perro y dos ratones"}}
-</ANSWER>
-```
-
-Which is then parsed using a regex and python's json parser.
+- Calls to OpenAI-powered functions generally have a ~0.5-1 second of overhead then get slower as the input and output increase in size. So pure-python solutions will often beat GPT-based solutions. Sometimes it's better to just ask the ChatGPT app for python code and run the python code.
 
 
 ## A future with GPT-powered functions?
@@ -482,8 +273,8 @@ GPTs are not yet fast and cheap enough to be used anywhere, but when they are it
 For instance instead of having developers write zillions of messages to help users troubleshoot errors, we'll use a function like this:
 
 ```python
-@gpt_function(think_through=True)
-def help_troubleshoot(error_traceback: str) -> str:
+@gpt_function
+def help_troubleshoot(error_traceback: str) -> ReasonedAnswer(str):
     """Return a short analysis of the Python error from the provided traceback.
     
     Example
@@ -504,8 +295,8 @@ def query_webpages_and_help_troubleshoot(url):
     try:
         requests.get(url)
     except Exception as error:
-        troubleshooting = help_troubleshoot(traceback.format_exc())
-        raise ValueError(troubleshooting) from error
+        gpt_advice = help_troubleshoot(traceback.format_exc())
+        raise ValueError(gpt_advice) from error
 ```
 
 And now we can run it into a wall:
