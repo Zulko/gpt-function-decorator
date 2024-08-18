@@ -53,7 +53,7 @@ The library relies on the new OpenAI's new [structured outputs](https://platform
 
 ## Acknowledging Marvin
 
-In a classic case of *"woops I found a library that did this after I developed my own"*, I realized after releasing `gpt_function_decorator` that another library, [marvin](https://github.com/PrefectHQ/marvin/), had had an equivalent feature for over a year:
+In a classic case of *"oops I had not realized there was already a library for this"*, I only discovered after releasing `gpt_function_decorator` that another library, [marvin](https://github.com/PrefectHQ/marvin/), had had an equivalent feature for over a year:
 
 ```python
 @marvin.fn
@@ -63,7 +63,7 @@ def sentiment(text: str) -> float:
     """
 ```
 
-One advantage of `marvin` has been the possibility to enforce an output schema, however this is now a feature we get for free from the OpenAI API. In comparison, the `gpt_function`, which leverages this OpenAI feature, is more lightweight (it only depends on `openai`, and the core logics is ~50 lines of code).
+One advantage of `marvin` has been the possibility to enforce an output schema, however this is now a feature we get for free from the OpenAI API. In comparison, the `gpt_function`, which leverages the new OpenAI feature, is much more lightweight (it only depends on `openai`, and the core logics is ~50 lines of code) and provides extra practical features like automated keyword arguments and reasoned answers.
 
 
 ## Installation and setup
