@@ -141,7 +141,7 @@ def ReasonedAnswer(T) -> pydantic.BaseModel:
         reasoning: str
         result: T
 
-        def str(self):
-            return f"{self.result}\n\nReasoning: {self.reasoning}"
+        def __str__(self):
+            return f"{self.result}\n\nGPT reasoning: {self.reasoning}"
 
     return _ReasonedAnswer

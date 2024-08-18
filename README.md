@@ -54,7 +54,7 @@ def sentiment(text: str) -> float:
 sentiment("I love working with Marvin!") # 0.8
 ```
 
-Marvin's huge advantage was the possibility to enforce the output schema, however this is now a native feature of the OpenAI API, which makes the `gpt_function` much more lightweight (the core logics are really ~40 lines of code, with `openai` as the only dependency).
+Marvin's huge advantage was the possibility to enforce the output schema, however this is now a native feature of the OpenAI API, which makes the `gpt_function` much more lightweight compared to Marvin's `fn` (the core logics are really ~40 lines of code, with `openai` as the only dependency).
 
 
 ## Installation and setup
@@ -114,9 +114,9 @@ find_words_in_text(text, categories=["animal", "food"])
 
 ### Advanced output formatting
 
-You can provide any simple out format directly (`-> int`, `-> float`, etc.). Lists should always declare the element type (for instance `list[str]`). The OpenAI API doesn't seem to like types like `tuple` too much, and will complain if you have a type like `Dict` but don't specify the keys.
+You can provide any simple output format directly (`-> int`, `-> float`, etc.). Lists should always declare the element type (for instance `list[str]`).
 
-If you really want to specify a `Dict` output with minimal boilerplate you can use the `TypedDict`: 
+The OpenAI API doesn't seem to like types like `tuple` too much, and will complain if you have a type like `Dict` but don't specify the keys. If you really want to specify a `Dict` output with minimal boilerplate you can use the `TypedDict`: 
 
 ```python
 from typing_extensions import TypedDict # or just typing, for Python>=3.12
@@ -152,13 +152,15 @@ first_us_presidents(3)
 
 With Pydantic models you can have output schemas as nested and complex as you like (see [the docs](https://cookbook.openai.com/examples/structured_outputs_intro)), although it seems that the more difficult you'll make it for the GPT to understand how to fill the schema, the longer it's take.
 
-### Use in class methods
+### Using `gpt_function` on class methods
 
 Class methods can use the `gpt_function`. The `self` can then be used in the docstring but beware that only access to attributes, not other methods, is supported at the moment (attributes computed via `property` are also supported)
 
 ```python
 from gpt_function_decorator import gpt_function
 from typing_extensions import TypedDict
+
+
 class City:
     
     def __init__(self, name, country):
@@ -181,13 +183,13 @@ city.tell_event(period="14th century", gpt_model="gpt-4o-2024-08-06")
 #  ...]
 ```
 
-### Controlling the GPT model
+### Parameters for the GPT model
 
-The `gpt_decorator` adds two parameters (and docstring documentation to got with it) to your function:
-- `gpt_model`: this allows the function's user to switch between `gpt-4o-mini` (the default, fast and cheap) and `gpt-4o` (any compatible version).
+The `gpt_function` decorator adds two parameters to the function it decorates:
+- `gpt_model`: this allows the function's user to switch between `gpt-4o-mini` (the default, fast and cheap but less capable) and `gpt-4o` (any compatible version).
 - `gpt_system_prompt`: this enables the user to tweak the answer as they would like by asking the GPT to focus on some aspects, or to roleplay.
-By default, `gpt_function` uses `gpt-4o-mini` under the hood, which is 10 times cheaper than `gpt-4o`, much faster and just almost as good (although `gpt-4o` knows more, makes less mistakes, and sometimes cracks better jokes).
 
+For instance we can start from this decent function:
 
 ```python
 @gpt_function
@@ -196,8 +198,11 @@ def list_movies(actor, n=2) -> list[str]:
     
 list_movies("Leonardo DiCaprio")
 # ['The Revenant', 'Inception']
+```
 
+And now let's ask for a more specific list and a better (more expensive) GPT model:
 
+```python
 list_movies(
     "Leonardo DiCaprio",
     gpt_system_prompt="Don't list movies released before 2020.",
@@ -221,10 +226,17 @@ celebrities = [
 answer = could_have_met("Chopin", celebrities)
 ```
 
-Despite the short prompt, this problem requires multiple steps: first list everyone's birth and death years, then see who overlapped with Chopin. It turns out `gpt4-o-mini` absolutely fails at this. (typically `[Mozart, Peggy Lee]`)
+Despite the short prompt, the request would require some reasoning from the GPT : first listing everyone's birth and death years, then checking who overlapped with Chopin. It turns out `gpt4-o-mini` absolutely fails at this: its answers would typically include Peggy Lee, who lived in a different century.
 
 
-This library provides a `ReasonedAnswer` constructor for the output schema. Concretely, it simply requests the answer to be a Pydantic model with two fields, `reasoning` and `result`.
+To get us smarter answer, we provide a `ReasonedAnswer` constructor for the output schema. Concretely, it requests the GPT answer to be a have two fields, `reasoning` and `result`.
+
+This causes the answers to be more verbose (and therefore slower and more costly) but resolves many issues:
+- The `reasoning` field gives the GPT room to "think through" the problem and produce better answers.
+- It is now possible for the user to see what the GPT's "reasoning" was, and whether a wrong answer was caused by a lack of knowledge, logics, etc.
+- It reduces the risk that some of GPT's reasoning and formatting ends up polluting the result's schema.
+
+So let's just change our function's output to `ReasonedAnswer(list[str])` and observe the improvement:
 
 ```python
 from gpt_function_decorator import gpt_function, ReasonedAnswer
@@ -256,6 +268,8 @@ print (answer.reasoning)
 # - Ludwig van Beethoven (1770-1827) could have met Chopin.  
 ```
 
+
+
 ### Limitations
 
 Ye be warned:
@@ -275,13 +289,7 @@ For instance instead of having developers write zillions of messages to help use
 ```python
 @gpt_function
 def help_troubleshoot(error_traceback: str) -> ReasonedAnswer(str):
-    """Return a short analysis of the Python error from the provided traceback.
-    
-    Example
-    ------ 
-    >>> help_troubleshoot("some\ntraceback")
-    "This error generally happens (...). Maybe the variable `x` is not set (...)"
-    """
+    """Return a short analysis of the Python error: {error_traceback}"""
 ```
 
 With this we can write a function that queries webpages and looks into the issue if need be:
@@ -296,10 +304,10 @@ def query_webpages_and_help_troubleshoot(url):
         requests.get(url)
     except Exception as error:
         gpt_advice = help_troubleshoot(traceback.format_exc())
-        raise ValueError(gpt_advice) from error
+        raise Exception(str(gpt_advice)) from error
 ```
 
-And now we can run it into a wall:
+And now we can run it into a wall and watch it understand the issue:
 
 ```python
 query_webpages_and_help_troubleshoot("https://wykipedia.com")
@@ -308,32 +316,14 @@ query_webpages_and_help_troubleshoot("https://wykipedia.com")
 """
 < traceback with ConnectionError, MaxRetryError, etc... />
 
-ValueError: The error indicates a failure to resolve the hostname
-`wykipedia.com`. This generally means that the domain name is either
-incorrect or does not exist. A common typo might be confusing it with
-the correct URL `wikipedia.com`. Please verify the URL and try again.
+Exception: The immediate cause of the error is an inability to resolve the
+hostname 'wykipedia.com'. To resolve this, ensure the URL is correctly
+spelled as 'wikipedia.com'.
+
+GPT reasoning: The error traceback indicates that the Python script attempted
+to make a network request to 'wykipedia.com' using the requests library. The
+main issue arises from the `socket.gaierror` ... etc.
 """
-```
-
-
-## Development
-
-To contribute to this library, first checkout the code.
-
-Then create a new virtual environment:
-
-```bash
-cd gpt-function-decorator
-python -m venv venv
-source venv/bin/activate
-```
-Now install the dependencies and test dependencies:
-```bash
-pip install -e '.[test]'
-```
-To run the tests:
-```bash
-pytest
 ```
 
 ## Contribute!
