@@ -49,10 +49,7 @@ print (answer.reasoning)
 
 ```
 
-The library relies on the new OpenAI's new [structured outputs](https://platform.openai.com/docs/guides/structured-outputs/introduction) feature which can generate results with complex nested schemas.
-
-Yes, using ChatGPT can lead to unpredictable and unreliable outputs in complex or open-ended queries. But leveraged on the right use-cases, it can also replace hours of scripting and hundreds of lines of code.
-
+The library relies on the new OpenAI's new [structured outputs](https://platform.openai.com/docs/guides/structured-outputs/introduction) feature which can generate results with complex nested schemas. This service can definitely be to unpredictable or unreliable for complex or open-ended queries. But leveraged on the right use-cases and with the right specifications, it can also replace hours of scripting and hundreds of lines of code.
 
 ## Acknowledging Marvin
 
