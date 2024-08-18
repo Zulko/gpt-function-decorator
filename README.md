@@ -112,7 +112,7 @@ list_famous_composers(20)
 # Returns ['Johann Sebastian Bach',  'Ludwig van Beethoven', ...]
 ```
 
-(If classical music is your thing built a [GPT-automated website](https://github.com/Zulko/composer-timelines) on top of this function above and a few others)
+(Shameless ad: if classical music is your thing, I built a [GPT-automated website](https://github.com/Zulko/composer-timelines) on top of this function and a few others powered by ChatGPT)
 
 Functions defined with the decorator can also have multiple arguments and keyword arguments:
 
