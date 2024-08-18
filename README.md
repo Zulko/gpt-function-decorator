@@ -11,50 +11,62 @@ This library provides a decorator to define no-code functions that will be "run"
 from gpt_function_decorator import gpt_function
 
 @gpt_function
-def synonym(word, tone='formal'):
-    """Return a {tone} synonym of {word}."""
+def format_date(date):
+    """Format {date} as yyyy-mm-dd"""
 
 # And just like that, you have a new python function:
 
-synonym("man", tone="slang") # returns "dude"
-synonym("man", tone="formal") # returns "male"
-synonym("man", tone="academic") # returns "individual"
+format_date("December 9, 1992.") # returns '1992-12-09'
+format_date("On May the 4th 1979") # returns '1992-05-04'
+format_date("12/31/2008.") # returns '2008-12-31'
 ```
 
-Here is another one I love (I built a [whole website](https://github.com/Zulko/composer-timelines) on top of it):
+Here is another example with a more structured output:
 
 ```python
+from gpt_function_decorator import gpt_function, ReasonedAnswer
+
 @gpt_function
-def list_famous_composers(n) -> list[str]:
-    "Return the {n} most famous composers."
-    
-list_famous_composers(20)
-# Returns ['Johann Sebastian Bach',  'Ludwig van Beethoven', ...]
+def deduplicate_celebrities(names) -> ReasonedAnswer(list[str]):
+    """Deduplicate the list of celebrities {names}."""
+
+celebrities = [
+    "Leo Messi",
+    "Mozart",
+    "W. A. Mozart",
+    "Lionel Messi",
+    "Leo diCaprio"
+]
+answer = deduplicate_celebrities(celebrities)
+
+print (answer.result)
+# ['Leo Messi', 'Mozart', 'Leo diCaprio']
+
+print (answer.reasoning)
+# `Leo Messi` and `Lionel Messi` refer to the same person,
+# and `Mozart` and `W. A. Mozart` also refer to the same individual.
+# We include `Leo diCaprio` as it is a distinct name.
+
 ```
 
-The library relies on the new OpenAI [structured outputs](https://platform.openai.com/docs/guides/structured-outputs/introduction) which can generate output with complex, composite output schemas, and adds automation so the types don't have to be defined with Pydantic.
+The library relies on the new OpenAI's new [structured outputs](https://platform.openai.com/docs/guides/structured-outputs/introduction) feature which can generate results with complex nested schemas.
 
-Yes, using ChatGPT results in unpredictable and unreliable answers. But leveraged on the right use-cases, such functions can replace hundreds of lines of code and save hours of scripting headaches.
+Yes, using ChatGPT can lead to unpredictable and unreliable outputs in complex or open-ended queries. But leveraged on the right use-cases, it can also replace hours of scripting and hundreds of lines of code.
 
 
 ## Acknowledging Marvin
 
-In a classic case of *"woops I couldn't find a library that did this until I developed my own"*, I realized after pushing this online that [marvin](https://github.com/PrefectHQ/marvin/) had had an equivalent feature for over a year:
+In a classic case of *"woops I found a library that did this after I developed my own"*, I realized after releasing `gpt_function_decorator` that another library, [marvin](https://github.com/PrefectHQ/marvin/), had had an equivalent feature for over a year:
 
 ```python
-#pip import marvin
-import marvin
-
 @marvin.fn
 def sentiment(text: str) -> float:
     """Returns a sentiment score for `text`
     between -1 (negative) and 1 (positive).
     """
-
-sentiment("I love working with Marvin!") # 0.8
 ```
 
-Marvin's huge advantage was the possibility to enforce the output schema, however this is now a native feature of the OpenAI API, which makes the `gpt_function` much more lightweight compared to Marvin's `fn` (the core logics are really ~40 lines of code, with `openai` as the only dependency).
+One advantage of `marvin` has been the possibility to enforce an output schema, however this is now a feature we get for free from the OpenAI API. In comparison, the `gpt_function`, which leverages this OpenAI feature, is more lightweight (it only depends on `openai`, and the core logics is ~50 lines of code).
 
 
 ## Installation and setup
@@ -80,25 +92,48 @@ gpt_function_decorator.SETTINGS["openai_client"] = OpenAI(api_key="...", ...)
 
 ### Basics
 
-In its most basic form, just import the decorator, and apply it to a function with a docstring.
-By default, the function will return a string.
+Import the decorator and apply it to a function whose docstring references the parameters as follows
+
+```python
+@gpt_function
+def species(breed):
+    """Return the species name (cat, dog, ...) of {breed}"""
+
+species("German Shepard") # Returns "dog"
+species("Siamese") # Returns "cat"
+species("Black widow") # Returns "spider"
+```
+
+By default, functions decorated with `@gpt_function` return a string, but you can specify the returned type with the usual hint  `->` in your function:
+
+```python
+@gpt_function
+def list_famous_composers(n) -> list[str]:
+    "Return the {n} most famous composers."
+    
+list_famous_composers(20)
+# Returns ['Johann Sebastian Bach',  'Ludwig van Beethoven', ...]
+```
+
+(If classical music is your thing built a [GPT-automated website](https://github.com/Zulko/composer-timelines) on top of this function above and a few others)
+
+Functions defined with the decorator can also have multiple arguments and keyword arguments:
 
 ```python
 from gpt_function_decorator import gpt_function
 
 @gpt_function
-def format_date(date):
-    """Format {date} as yyyy-mm-dd"""
+def synonym(word, tone='formal'):
+    """Return a {tone} synonym of {word}."""
 
 # Let's try it!
-format_date("December 9th, 1992.")
 
-# Returns:
-'1992-12-09'
+synonym("man", tone="slang") # returns "dude"
+synonym("man", tone="formal") # returns "male"
+synonym("man", tone="academic") # returns "individual"
 ```
 
-Functions defined with the decorator can have multiple arguments and keyword arguments, and you can specify the returned type with the usual type hint  `->`
-
+Putting everything together in this example:
 ```python
 @gpt_function
 def find_words_in_text(text, categories, limit=3) -> list[str]:
