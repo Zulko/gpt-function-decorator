@@ -1,1 +1,1 @@
-from .gpt_function import gpt_function
+from .gpt_function import gpt_function, ReasonedAnswer
