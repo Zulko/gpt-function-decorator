@@ -114,7 +114,7 @@ list_famous_composers(20)
 
 (Shameless ad: if classical music is your thing, I built a [GPT-automated website](https://github.com/Zulko/composer-timelines) on top of this function and a few others powered by ChatGPT)
 
-Functions defined with the decorator can also have multiple arguments and keyword arguments:
+A `gpt_function`-decorated method can also have multiple arguments and keyword arguments:
 
 ```python
 from gpt_function_decorator import gpt_function
@@ -131,6 +131,7 @@ synonym("man", tone="academic") # returns "individual"
 ```
 
 Putting everything together in this example:
+
 ```python
 @gpt_function
 def find_words_in_text(text, categories, limit=3) -> list[str]:
@@ -146,43 +147,44 @@ find_words_in_text(text, categories=["animal", "food"])
 
 ### Advanced output formatting
 
-You can provide any simple output format directly (`-> int`, `-> float`, etc.). Lists should always declare the element type (for instance `list[str]`).
+You can provide any simple output format directly in the function signature with `-> int`, `-> float`, etc. Lists should always declare the element type (for instance `list[str]`).
 
-The OpenAI API doesn't seem to like types like `tuple` too much, and will complain if you have a type like `Dict` but don't specify the keys. If you really want to specify a `Dict` output with minimal boilerplate you can use the `TypedDict`: 
+The OpenAI API doesn't seem to like types like `tuple` too much, and will refuse a `Dict` type as it doesn't know what key names to use. If To specify a `Dict` output with minimal boilerplate you can use the `TypedDict`: 
 
 ```python
-from typing_extensions import TypedDict # or just typing, for Python>=3.12
+from typing_extensions import TypedDict # or just "typing", for Python>=3.12
 
 @gpt_function
-def first_us_presidents(n) -> list[TypedDict("i", dict(birth_year=int, name=str))]:
+def first_us_presidents(n) -> list[TypedDict("i", dict(birth=int, name=str))]:
     """Return the {n} first US presidents with their birth year"""
 
 first_us_presidents(3)
-# [{'year': 1732, 'name': 'George Washington'},
-#  {'year': 1735, 'name': 'John Adams'},
-#  {'year': 1751, 'name': 'Thomas Jefferson'}]
+# [{'birth': 1732, 'name': 'George Washington'},
+#  {'birth': 1735, 'name': 'John Adams'},
+#  {'birth': 1751, 'name': 'Thomas Jefferson'}]
 ```
 
-But really the cleanest (and OpenAI-officially-supported) way is to provide a Pydantic model:
+But really the cleanest way (also officially supported by OpenAI) is to provide a Pydantic model as type:
 
 ```python
 from pydantic import BaseModel
 
 class USPresident(BaseModel):
+    birth: int
     name: str
-    birth_year: int
+    
 
 @gpt_function
 def first_us_presidents(n) -> list[USPresident]:
     """Return the {n} first US presidents with their birth year"""
 
 first_us_presidents(3)
-# [President(name='George Washington', birth_year=1732),
-#  President(name='John Adams', birth_year=1735),
-#  President(name='Thomas Jefferson', birth_year=1743)]
+# [USPresident(birth=1732, name='George Washington'),
+#  USPresident(birth=1735, name='John Adams'),
+#  USPresident(birth=1743, name='Thomas Jefferson')]
 ```
 
-With Pydantic models you can have output schemas as nested and complex as you like (see [the docs](https://cookbook.openai.com/examples/structured_outputs_intro)), although it seems that the more difficult you'll make it for the GPT to understand how to fill the schema, the longer it's take.
+With Pydantic models you can have output schemas as nested and complex as you like (see [the docs](https://cookbook.openai.com/examples/structured_outputs_intro)), although it seems that the more difficult you'll make it for the GPT to understand how to fill the schema, the longer it will take (not sure about costs).
 
 ### Using `gpt_function` on class methods
 
