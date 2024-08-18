@@ -227,21 +227,21 @@ For instance we can start from this decent function:
 ```python
 @gpt_function
 def list_movies(actor, n=2) -> list[str]:
-    """Return the titles of at most {n} great movies featuring {actor}."""
-    
-list_movies("Leonardo DiCaprio")
-# ['The Revenant', 'Inception']
+    """Return {n} movies featuring {actor}, e.g. "Batman", "Up"..."""
+
+list_movies("Brad Pitt")
+# ['Fight Club', 'Once Upon a Time in Hollywood']
 ```
 
-And now let's ask for a more specific list and a better (more expensive) GPT model:
+Now let's ask for a more specific list, with a better (more expensive) GPT model:
 
 ```python
 list_movies(
-    "Leonardo DiCaprio",
+    "Brad Pitt",
     gpt_system_prompt="Don't list movies released before 2020.",
     gpt_model="gpt-4o-2024-08-06" #gpt-4o knows more than -mini
 )
-# ['Django Unchained', 'Once Upon a Time in Hollywood']
+# ['Bullet Train', 'Babylon']
 ```
 
 ### Asking the GPT for a reasoned answer
