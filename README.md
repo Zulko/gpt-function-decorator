@@ -330,6 +330,11 @@ main issue arises from the `socket.gaierror` ... etc.
 
 This open-source project is hosted on Github under the Apache 2.0 license. Everyone is welcome to contribute!
 
+To release a new version:
+- Increment the version number in `pyproject.toml`
+- Create a new-release with that version on Github.
+- The Github Actions will pick it from there and publish
+
 ## Thanks
 
 Thanks to Simon Willison for his [python library project template](https://github.com/simonw/python-lib).
