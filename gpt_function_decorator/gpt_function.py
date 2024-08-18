@@ -137,6 +137,12 @@ def add_kwargs(**new_kwargs):
 
 
 def ReasonedAnswer(T) -> pydantic.BaseModel:
+    """Return a new type that includes a reasoning string with the result.
+
+    The reasoning will be in `myvariable.reasoning`, and the result with the
+    originally requested type T will be in `myvariable.result`.
+    """
+
     class _ReasonedAnswer(pydantic.BaseModel):
         reasoning: str
         result: T
