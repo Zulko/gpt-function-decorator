@@ -251,34 +251,6 @@ city.events(period="14th century", gpt_model="gpt-4o-2024-08-06")
 #  ...]
 ```
 
-### Parameters for the GPT model
-
-The `gpt_function` decorator adds two parameters to the function it decorates:
-- `gpt_model`: this allows the function's user to switch between `gpt-4o-mini` (the default, fast and cheap but less capable) and `gpt-4o` (any compatible version).
-- `gpt_system_prompt`: this enables the user to tweak the answer as they would like by asking the GPT to focus on some aspects, or to roleplay.
-
-For instance we can start from this decent function:
-
-```python
-@gpt_function
-def list_movies(actor, n=2) -> list[str]:
-    """Return {n} movies featuring {actor}, e.g. "Batman", "Up"..."""
-
-list_movies("Brad Pitt")
-# ['Fight Club', 'Once Upon a Time in Hollywood']
-```
-
-Now let's ask for a more specific list, with a better (more expensive) GPT model:
-
-```python
-list_movies(
-    "Brad Pitt",
-    gpt_system_prompt="Don't list movies released before 2020.",
-    gpt_model="gpt-4o-2024-08-06" #gpt-4o knows more than -mini
-)
-# ['Bullet Train', 'Babylon']
-```
-
 ### Asking the GPT for a reasoned answer
 
 Consider this function:
@@ -328,6 +300,35 @@ print (answer.reasoning)
 # - Peggy Lee (1920-2002) could not have met Chopin, as she was born
 #   after Chopin died.  
 # - Ludwig van Beethoven (1770-1827) could have met Chopin.  
+```
+
+
+### Parameters for the GPT model
+
+The `gpt_function` decorator adds two parameters to the function it decorates:
+- `gpt_model`: this allows the function's user to switch between `gpt-4o-mini` (the default, fast and cheap but less capable) and `gpt-4o` (any compatible version).
+- `gpt_system_prompt`: this enables the user to tweak the answer as they would like by asking the GPT to focus on some aspects, or to roleplay.
+
+As an example, let's start from this function:
+
+```python
+@gpt_function
+def list_movies(actor, n=2) -> list[str]:
+    """Return {n} movies featuring {actor}, e.g. "Batman", "Up"..."""
+
+list_movies("Brad Pitt")
+# ['Fight Club', 'Once Upon a Time in Hollywood']
+```
+
+Now when calling this function we also ask for a more specific list, and a better (more expensive) GPT model:
+
+```python
+list_movies(
+    "Brad Pitt",
+    gpt_system_prompt="Don't list movies released before 2020.",
+    gpt_model="gpt-4o-2024-08-06" #gpt-4o knows more than -mini
+)
+# ['Bullet Train', 'Babylon']
 ```
 
 ## Limitations
