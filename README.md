@@ -106,7 +106,7 @@ synonym("man", tone="formal") # returns "male" or "gentleman"
 synonym("man", tone="academic") # returns "individual" or "male"
 ```
 
-The docstring can be any normal Python docstring. Not only does this make your function user-friendly but at the same time it explains what's up to the GPT (GPTs love to be given examples on which they can model their input):
+The docstring can be any normal Python docstring. Longer docstrings, as long as they are well-written, will not only make your function more user-friendly but be used by the GPT to better understand your intended inputs outputs and outputs (GPTs love to be given examples on which they can model their output):
 
 ```python
 @gpt_function
