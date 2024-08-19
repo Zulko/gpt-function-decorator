@@ -135,10 +135,10 @@ This is a library for lazy people, and as an option you can write the docstring 
 
 ```python
 @gpt_function
-def find_rhyme(word, subject):
-    """Return a word related to {subject} that rhymes with {word}"""
+def find_rhyme(reference_word, topic):
+    """Return a word related to {topic} that rhymes with {reference_word}"""
     
-find_rhyme("boat", subject="space exploration") # returns "remote"
+find_rhyme("boat", topic="space exploration") # returns "remote"
 ```
 
 Any argument not converted in the docstring formatting will still be passed to the function on its own. In the example below most arguments are passed in the first sentence (it flows well) but the text will be passed separately.
@@ -146,7 +146,7 @@ Any argument not converted in the docstring formatting will still be passed to t
 ```python
 @gpt_function
 def find_words_in_text(text, categories, max=3) -> list[str]:
-    """Return at most {max} words of the text that are related to {categories}"""
+    """Return at most {max} words of the text that relate to {categories}"""
 
 # Call:
 text = "The sailor's dog and cat ate a basket of apples and biscuits"
@@ -182,7 +182,7 @@ list_famous_composers(20)
 
 (Shameless ad: if classical music is your thing, I built a [GPT-automated website](https://github.com/Zulko/composer-timelines) on top of this function and a few others powered by ChatGPT)
 
-### Advanced output formatting
+### Advanced output formatting with Pydantic
 
 The OpenAI API doesn't seem to like types like `tuple` too much, and will refuse a `Dict` type as it doesn't know what key names to use. If To specify a `Dict` output with minimal boilerplate you can use the `TypedDict`: 
 
