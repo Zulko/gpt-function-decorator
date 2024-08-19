@@ -12,7 +12,7 @@ from gpt_function_decorator import gpt_function
 
 @gpt_function
 def format_date(date):
-    """Format {date} as yyyy-mm-dd"""
+    """Format the date as yyyy-mm-dd"""
 
 # And just like that, you have a new python function:
 
@@ -28,7 +28,7 @@ from gpt_function_decorator import gpt_function, ReasonedAnswer
 
 @gpt_function
 def deduplicate_celebrities(names) -> ReasonedAnswer(list[str]):
-    """Deduplicate the list of celebrities {names}."""
+    """Return the deduplicated version of the celebrities list."""
 
 celebrities = [
     "Leo Messi",
@@ -89,19 +89,87 @@ gpt_function_decorator.SETTINGS["openai_client"] = OpenAI(api_key="...", ...)
 
 ### Basics
 
-Import the decorator and apply it to a function whose docstring references the parameters as follows
+Import the decorator and apply it to a function whose docstring explains what to do with the parameters. The docstring can 
+
+
+```python
+from gpt_function_decorator import gpt_function
+
+@gpt_function
+def synonym(word, tone='formal'):
+    """Return a synonym of the word with the given tone."""
+
+# Let's try it!
+
+synonym("man", tone="slang") # returns "dude"
+synonym("man", tone="formal") # returns "male" or "gentleman"
+synonym("man", tone="academic") # returns "individual" or "male"
+```
+
+The docstring can be any normal Python docstring. Not only does this make your function user-friendly but at the same time it explains what's up to the GPT (GPTs love to be given examples on which they can model their input):
 
 ```python
 @gpt_function
 def species(breed):
-    """Return the species name (cat, dog, ...) of {breed}"""
+    """Return the species for the given breed.
+    
+    Parameters
+    ----------
+    breed:
+       The name of the breed.
+
+    Examples
+    --------
+    >>> species("Fox Terrier") # Returns "dog"
+    >>> species("Eagle") # Returns "bird"
+    """
 
 species("German Shepard") # Returns "dog"
 species("Siamese") # Returns "cat"
 species("Black widow") # Returns "spider"
 ```
 
+### Formatted docstrings
+
+This is a library for lazy people, and as an option you can write the docstring as below so the `{bracketed}` fields will get replaced by the function's parameters. In some cases this can help ChatGPT as it will be presented with a shorter and more to-the-point prompt. 
+
+```python
+@gpt_function
+def find_rhyme(word, subject):
+    """Return a word related to {subject} that rhymes with {word}"""
+    
+find_rhyme("boat", subject="space exploration") # returns "remote"
+```
+
+Any argument not converted in the docstring formatting will still be passed to the function on its own. In the example below most arguments are passed in the first sentence (it flows well) but the text will be passed separately.
+
+```python
+@gpt_function
+def find_words_in_text(text, categories, max=3) -> list[str]:
+    """Return at most {max} words of the text that are related to {categories}"""
+
+# Call:
+text = "The sailor's dog and cat ate a basket of apples and biscuits"
+find_words_in_text(text, categories=["animal", "food"])
+
+# Returns:
+['dog', 'cat', 'apples']
+```
+
+### Basic output formatting
+
 By default, functions decorated with `@gpt_function` return a string, but you can specify the returned type with the usual hint  `->` in your function:
+
+```python
+@gpt_function
+def positivity(sentence) -> int:
+    """Return the positivity of "{sentence}" on a 0-100 scale"""
+
+positivity("I am desperate") # returns 10
+positivity("Everyone was stoked!!!") # returns 90
+```
+
+Lists should always declare their element type (for instance `list[str]`):
 
 ```python
 @gpt_function
@@ -114,40 +182,7 @@ list_famous_composers(20)
 
 (Shameless ad: if classical music is your thing, I built a [GPT-automated website](https://github.com/Zulko/composer-timelines) on top of this function and a few others powered by ChatGPT)
 
-A `gpt_function`-decorated method can also have multiple arguments and keyword arguments:
-
-```python
-from gpt_function_decorator import gpt_function
-
-@gpt_function
-def synonym(word, tone='formal'):
-    """Return a {tone} synonym of {word}."""
-
-# Let's try it!
-
-synonym("man", tone="slang") # returns "dude"
-synonym("man", tone="formal") # returns "male"
-synonym("man", tone="academic") # returns "individual"
-```
-
-Putting everything together in this example:
-
-```python
-@gpt_function
-def find_words_in_text(text, categories, limit=3) -> list[str]:
-    """Return at most {limit} words from "{text}" related to {categories}"""
-
-# Call:
-text = "The sailor's dog and cat ate a basket of apples and biscuits"
-find_words_in_text(text, categories=["animal", "food"])
-
-# Returns:
-['dog', 'cat', 'apples']
-```
-
 ### Advanced output formatting
-
-You can provide any simple output format directly in the function signature with `-> int`, `-> float`, etc. Lists should always declare the element type (for instance `list[str]`).
 
 The OpenAI API doesn't seem to like types like `tuple` too much, and will refuse a `Dict` type as it doesn't know what key names to use. If To specify a `Dict` output with minimal boilerplate you can use the `TypedDict`: 
 
@@ -188,7 +223,7 @@ With Pydantic models you can have output schemas as nested and complex as you li
 
 ### Using `gpt_function` on class methods
 
-Class methods can use the `gpt_function`. The `self` can then be used in the docstring but beware that only access to attributes, not other methods, is supported at the moment (attributes computed via `property` are also supported)
+Class methods can use the `gpt_function` just like any other function. The `self` can then be used for interpolation in the docstring but beware that only access to attributes, not other class methods, is supported (attributes computed via `property` are also supported)
 
 ```python
 from gpt_function_decorator import gpt_function

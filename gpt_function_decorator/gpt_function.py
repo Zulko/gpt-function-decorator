@@ -1,9 +1,10 @@
 from functools import wraps
-import inspect
 import typing
 
 import pydantic
 from openai import OpenAI
+
+from . import arg_utils
 
 # This is a global variable that will store the OpenAI client. This
 # enables any user to set the client  under their own terms (key, project...)
@@ -43,34 +44,20 @@ def gpt_function(func):
 
         requested_format = __Response
 
-    @add_kwargs(gpt_model="gpt-4o-mini", gpt_system_prompt=None)
+    @arg_utils.add_kwargs(gpt_model="gpt-4o-mini", gpt_system_prompt=None)
     @wraps(func)  # This preserves the docstring and other attributes
     def wrapper(*args, **kwargs):
         # Get and remove parameters used by the wrapper only
         gpt_model = kwargs.pop("gpt_model")
         gpt_system_prompt = kwargs.pop("gpt_system_prompt")
 
-        # Build the prompt: format the docstring with the function's arguments
-        # Step 1: Name the args that weren't named:
-        args_names = [
-            name
-            for name, param in inspect.signature(func).parameters.items()
-            if param.default == inspect.Parameter.empty
-        ]
-        named_args = dict(zip(args_names, args))
+        all_named_args = arg_utils.name_all_args_and_defaults(func, args, kwargs)
 
-        all_named_args = {**named_args, **kwargs}
-
-        # Step 2: Add the values un-specified kwargs from func
-        unspecified_kwargs = {
-            name: param.default
-            for name, param in inspect.signature(func).parameters.items()
-            if param.default != inspect.Parameter.empty and name not in all_named_args
-        }
-        prompt = func.__doc__.format(**all_named_args, **unspecified_kwargs)
+        prompt = arg_utils.generate_prompt_from_docstring(func.__doc__, all_named_args)
 
         system_prompt = "Answer using the provided output schema."
         if gpt_system_prompt:
+            # Add user provided prompt
             system_prompt = gpt_system_prompt + "\n" + system_prompt
         gpt_messages = [
             {"role": "system", "content": system_prompt},
@@ -96,44 +83,6 @@ def gpt_function(func):
     # function is actually running on a chatbot.
     wrapper.__doc__ += ADDITIONAL_DOCS
     return wrapper
-
-
-def add_kwargs(**new_kwargs):
-    """Decorator to add keyword arguments to a function's signature."""
-
-    def decorator(func):
-        # Get the original function's signature
-        sig = inspect.signature(func)
-        params = list(sig.parameters.values())
-
-        # Add new kwargs to the parameters
-        parameter_type = inspect.Parameter.POSITIONAL_OR_KEYWORD
-        keyword_only = inspect.Parameter.KEYWORD_ONLY
-        if any([param.kind == keyword_only for param in params]):
-            parameter_type = keyword_only
-
-        new_params = [
-            inspect.Parameter(name, parameter_type, default=value)
-            for name, value in new_kwargs.items()
-        ]
-
-        # Update the function's signature
-        params.extend(new_params)
-        new_sig = sig.replace(parameters=params)
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            # The new kwargs are already added to the signature, so they will
-            # be available in kwargs when the function is called.
-            kwargs = {**new_kwargs, **kwargs}
-            return func(*args, **kwargs)
-
-        # Update the signature of the wrapper function
-        wrapper.__signature__ = new_sig
-
-        return wrapper
-
-    return decorator
 
 
 def ReasonedAnswer(T) -> pydantic.BaseModel:
