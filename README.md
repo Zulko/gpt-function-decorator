@@ -49,7 +49,7 @@ print (answer.reasoning)
 
 ```
 
-The library relies on OpenAI's new [structured outputs](https://platform.openai.com/docs/guides/structured-outputs/introduction) feature, which enables complex output schemas. GPTs can definitely be unreliable for complex and open-ended tasks, but leveraged on the right use-cases and with good specifications, they can replace hours of scripting and hundreds of lines of code.
+The library relies on OpenAI's new [structured outputs](https://platform.openai.com/docs/guides/structured-outputs/introduction) feature, which enables complex output schemas. GPTs can definitely be unreliable for complex and open-ended tasks, but leveraged on the right use-cases they can replace hours of scripting and hundreds of lines of code.
 
 ## Acknowledging Marvin
 
