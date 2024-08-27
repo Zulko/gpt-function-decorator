@@ -332,7 +332,7 @@ list_movies(
 ```
 
 
-### It works with async functions too
+### Async GPT functions
 
 Your GPT function can be `async`, which can be very useful as OpenAI may be slow to answer some requests but will also let you send many requests in parallel:
 
