@@ -245,7 +245,7 @@ class City:
 
 city = City("Boston", "England")
 
-city.events(period="14th century", gpt_model="gpt-4o-2024-08-06")
+city.events(period="14th century", gpt_model="gpt-4o")
 # [{'year': 1313, 'event': 'Boston fairs are among the busiest...'},
 #  {'year': 1390, 'event': 'Boston Guildhall is constructed...'},
 #  ...]
@@ -326,9 +326,33 @@ Now when calling this function we also ask for a more specific list, and a bette
 list_movies(
     "Brad Pitt",
     gpt_system_prompt="Don't list movies released before 2020.",
-    gpt_model="gpt-4o-2024-08-06" #gpt-4o knows more than -mini
+    gpt_model="gpt-4o" #gpt-4o knows more than -mini
 )
 # ['Bullet Train', 'Babylon']
+```
+
+
+### It works with async functions too
+
+Your GPT function can be `async`:
+```python
+import asyncio
+
+@gpt_function
+async def summarize(text):
+    """Summarize the text."""
+
+# In another async function, or directly in a notebook:
+summaries = await asyncio.gather(*[summarize(txt) for txt in texts])
+```
+
+For practicality, async functions decorated with `@gpt_function` get an extra parameter `semaphore` which enables to limit the number of concurrent calls to OpenAI. In the example above, if there is a lot of texts to summarize, you could ask for only 5 OpenAI requests at a time:
+
+```python
+semaphore = asyncio.Semaphore(5)
+summaries = await asyncio.gather(*[
+    summarize(txt, semaphore=semaphore) for txt in texts
+])
 ```
 
 ## Limitations

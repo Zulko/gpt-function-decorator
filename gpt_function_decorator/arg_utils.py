@@ -1,4 +1,5 @@
 import string
+import json
 import inspect
 from functools import wraps
 from textwrap import dedent
@@ -60,10 +61,18 @@ def name_all_args_and_defaults(func, args, kwargs):
     return {**all_named_args, **unspecified_kwargs}
 
 
+def pydantic_aware_json_dumper(obj):
+    if hasattr(obj, "model_dump_json"):
+        return obj.model_dump_json()
+    if hasattr(obj, "__json__"):
+        return obj.__json__()
+    if hasattr(obj, "toJSON"):
+        return obj.toJSON()
+    return obj.__dict__
+
+
 def generate_prompt_from_docstring(docstring, named_args):
-    # Step 3: try applying to the docstring
-    first_line, *rest = docstring.split("\n")
-    docstring = "\n".join([dedent(first_line), dedent("\n".join(rest))])
+    docstring = dedent_string(docstring)
     # This allows the user to define an interpolated string.
     try:
         prompt = docstring.format(**named_args)
@@ -79,5 +88,13 @@ def generate_prompt_from_docstring(docstring, named_args):
     unused_args = set(named_args.keys()) - used_args
     unused_args_w_values = {k: named_args[k] for k in unused_args}
     if unused_args_w_values:
-        prompt += f"\nUse these values, represented in JSON: {unused_args_w_values}"
+        unused_args_json = json.dumps(
+            unused_args_w_values, default=pydantic_aware_json_dumper
+        )
+        prompt += f"\nUse these values, represented in JSON: {unused_args_json}"
     return prompt
+
+
+def dedent_string(string: str) -> str:
+    first_line, *rest = string.split("\n")
+    return "\n".join([dedent(first_line), dedent("\n".join(rest))])

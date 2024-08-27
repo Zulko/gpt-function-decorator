@@ -1,10 +1,15 @@
 from functools import wraps
 import typing
+import asyncio
 
 import pydantic
 from openai import OpenAI
 
 from . import arg_utils
+
+# Makes all pydantic models dumpable to JSON via json.dumps(...) even
+# when nested deep into other structures.
+pydantic.BaseModel.__json__ = pydantic.BaseModel.model_dump_json
 
 # This is a global variable that will store the OpenAI client. This
 # enables any user to set the client  under their own terms (key, project...)
@@ -24,12 +29,15 @@ Parameters
 -----------
 
 gpt_model: str
-    The OpenAI model, current choices are gpt-4o-mini, gpt-4o-2024-08-06, and later.
+    The OpenAI model, current choices are gpt-4o-mini and gpt-4o (which will
+    get cast to gpt-4o-2024-08-06, the only model capable of structured outputs).
     `gpt-4o-mini` is faster, and 10 times less expensive, but the answers can be
     less good.
 
 gpt_system_prompt: Optional[str]
     Additional prompt to be added before the user's prompt. This can be used
+    to give the model more context about the task it's performing, or more generally
+    to tweak its behavior
 """
 
 
@@ -49,6 +57,10 @@ def gpt_function(func):
     def wrapper(*args, **kwargs):
         # Get and remove parameters used by the wrapper only
         gpt_model = kwargs.pop("gpt_model")
+        if gpt_model == "gpt-4o":
+            # The only one that works with structured output so far,
+            # will remove that later when more models are available.
+            gpt_model = "gpt-4o-2024-08-06"
         gpt_system_prompt = kwargs.pop("gpt_system_prompt")
 
         all_named_args = arg_utils.name_all_args_and_defaults(func, args, kwargs)
@@ -58,6 +70,7 @@ def gpt_function(func):
         system_prompt = "Answer using the provided output schema."
         if gpt_system_prompt:
             # Add user provided prompt
+            gpt_system_prompt = arg_utils.dedent_string(gpt_system_prompt)
             system_prompt = gpt_system_prompt + "\n" + system_prompt
         gpt_messages = [
             {"role": "system", "content": system_prompt},
@@ -78,6 +91,25 @@ def gpt_function(func):
             formatted_response = formatted_response.response
 
         return formatted_response
+
+    # if the original function is async, make the wrapper async too
+    if asyncio.iscoroutinefunction(func):
+
+        @arg_utils.add_kwargs(semaphore=None)
+        @wraps(wrapper)
+        async def async_wrapper(*args, **kwargs):
+            semaphore = kwargs.pop("semaphore")
+            if semaphore is not None:
+                async with semaphore:
+                    return await asyncio.to_thread(wrapper, *args, **kwargs)
+            else:
+                return await asyncio.to_thread(wrapper, *args, **kwargs)
+
+        async_wrapper.__doc__ += ADDITIONAL_DOCS + (
+            "\n\nThis function is async and can be called with an "
+            "asyncio.Semaphore(5) to limit the number of concurrent executions."
+        )
+        return async_wrapper
 
     # Add a text to the docstring so it will be clear to users that the
     # function is actually running on a chatbot.
