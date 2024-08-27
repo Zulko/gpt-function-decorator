@@ -334,7 +334,8 @@ list_movies(
 
 ### It works with async functions too
 
-Your GPT function can be `async`:
+Your GPT function can be `async`, which can be very useful as OpenAI may be slow to answer some requests but will also let you send many requests in parallel:
+
 ```python
 import asyncio
 
@@ -342,14 +343,15 @@ import asyncio
 async def summarize(text):
     """Summarize the text."""
 
-# In another async function, or directly in a notebook:
+# In another async function, or directly in a notebook, call the function
+# to summarize several texts asynchronously (in "parallel"):
 summaries = await asyncio.gather(*[summarize(txt) for txt in texts])
 ```
 
-For practicality, async functions decorated with `@gpt_function` get an extra parameter `semaphore` which enables to limit the number of concurrent calls to OpenAI. In the example above, if there is a lot of texts to summarize, you could ask for only 5 OpenAI requests at a time:
+For practicality, async functions decorated with `@gpt_function` get an extra parameter `semaphore` which enables to limit the number of concurrent calls to OpenAI. In the example above, if there is a lot of texts to summarize, you could ask for only 10 OpenAI requests at a time:
 
 ```python
-semaphore = asyncio.Semaphore(5)
+semaphore = asyncio.Semaphore(10)
 summaries = await asyncio.gather(*[
     summarize(txt, semaphore=semaphore) for txt in texts
 ])
