@@ -93,7 +93,7 @@ def get_args_as_yaml(named_args):
 
 def find_nested_pydantic_models(
     some_type, found_models: Optional[Set[BaseModel]] = None
-) -> set[BaseModel]:
+) -> Set[BaseModel]:
     """Return all the models found in the given type.
 
     For instance if you have a type House[dogs=List[Dog], name=str] the function
