@@ -2,7 +2,7 @@ import string
 import json
 import inspect
 from textwrap import dedent
-from typing import List, Optional
+from typing import List, Optional, Set
 
 import yaml
 from pydantic import BaseModel
@@ -92,7 +92,7 @@ def get_args_as_yaml(named_args):
 
 
 def find_nested_pydantic_models(
-    some_type, found_models: Optional[set[BaseModel]] = None
+    some_type, found_models: Optional[Set[BaseModel]] = None
 ) -> set[BaseModel]:
     """Return all the models found in the given type.
 

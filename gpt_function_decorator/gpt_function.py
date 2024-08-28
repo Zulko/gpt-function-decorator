@@ -108,6 +108,7 @@ def gpt_function(func):
         # Return the response (extract the response if we used nested trickery)
         if isinstance(formatted_response, BasicPydanticWrapper):
             formatted_response = formatted_response.response
+            return formatted_response
         elif isinstance(formatted_response, Reasoned):
             return formatted_response.extract_result()
         else:
