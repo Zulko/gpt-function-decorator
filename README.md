@@ -221,6 +221,27 @@ first_us_presidents(3)
 
 With Pydantic models you can have output schemas as nested and complex as you like (see [the docs](https://cookbook.openai.com/examples/structured_outputs_intro)), although it seems that the more difficult you'll make it for the GPT to understand how to fill the schema, the longer it will take (not sure about costs).
 
+### Using Pydantic fields to specify outputs
+
+Finally, the `@gpt_function` decorator will also transmit any Pydantic field description to the GPT, which is a nice way to provide more specifications on each element of the output:
+
+```python
+from pydantic import BaseModel, Field
+
+class USPresident(BaseModel):
+    birth_date: str = Field(description="date in yyyy-mm-dd")
+    name: str = Field(description="Family name")
+
+@gpt_function
+def first_us_presidents(n) -> list[USPresident]:
+    """Return the {n} first US presidents with their birth date"""
+
+first_us_presidents(3)
+# [USPresident(birth_date='1732-02-22', name='Washington'),
+#  USPresident(birth_date='1735-10-30', name='Adams'),
+#  USPresident(birth_date='1751-03-30', name='Jefferson')]
+```
+
 ### Using `gpt_function` on class methods
 
 Class methods can use the `gpt_function` just like any other function. The `self` can then be used for interpolation in the docstring but beware that only access to attributes, not other class methods, is supported (attributes computed via `property` are also supported)
