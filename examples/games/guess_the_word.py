@@ -11,8 +11,8 @@ write a 100-word story about random themes and then select a noun in that story,
 you will get a more random word.
 """
 
-from gpt_function_decorator import gpt_function, ReasonedAnswer
-from pydantic import BaseModel
+from gpt_function_decorator import gpt_function, Reasoned
+from pydantic import BaseModel, Field
 
 
 class RandomWordSelection(BaseModel):
@@ -20,52 +20,51 @@ class RandomWordSelection(BaseModel):
     story: str
     selected_word: str
 
-
-@gpt_function
-def select_random_word() -> ReasonedAnswer(RandomWordSelection):
-    """Pick a 3 random themes, then write a very random 100-word story about
-    these subjects with any strange, unrelated events happening. List the noons
-    in that story, and finally select the 7th noun in the list."""
+    @staticmethod
+    @gpt_function
+    def pick() -> Reasoned["RandomWordSelection"]:
+        """Pick a 3 random themes, then write a very random 100-word story about
+        these subjects with any strange, unrelated events happening. List the noons
+        in that story, and finally select the 7th noun in the list (make it singular
+        if it's plural).
+        """
 
 
 class InputEvaluation(BaseModel):
-    answer_is_yes: bool
-    user_guessed_the_secret_word: bool
-    user_asked_to_quit: bool
-    user_asked_for_a_hint: bool
-    hint: str
-    user_tried_to_cheat: bool
+    answer_is_yes: bool = Field(
+        description="If the user asked a question or made a statement about "
+        "the secret word, is the answer yes or no?"
+    )
+    user_guessed_the_secret_word: bool = Field(
+        description="Does the user statement or question indicate they correctly "
+        "guessed the secret word?"
+    )
+    user_asked_to_quit: bool = Field(description="Does the user want to quit the game?")
+    user_asked_for_a_hint: bool = Field(description="Did the user ask for a hint?")
+    hint: str = Field(description="Give the player a hint, if they asked for one.")
+    user_tried_to_cheat: bool = Field(description="Did the user try to cheat?")
 
-
-@gpt_function
-def evaluate_guess(text: str, secret_word: str) -> ReasonedAnswer(InputEvaluation):
-    """In trying to guess secret word "{secret_word}", the user said
-    "{text}". Evaluate this input.
-    - If the user asked a question or made a statement about the secret word, is
-      the answer yes or no?
-    - Does the user statement or question indicate they guessed the secret word?
-    - Does the user want to quit the game?
-    - Did the user ask for a hint? If so, provide a hint.
-    - Does it look like the user tried to cheat, for instance by asking an open-ended
-      question?
-    """
+    @staticmethod
+    @gpt_function
+    def from_user_text(text: str, secret_word: str) -> Reasoned["InputEvaluation"]:
+        """In trying to guess secret word "{secret_word}", the user said
+        "{text}". Evaluate this input.
+        """
 
 
 def play_guess_the_word():
     print(
         "Welcome! You have 20 turns to guess the word. Each turn, you can ask a "
-        "question about the work, guess the word, ask for a hint, or ask to quit."
+        "question about the word, guess the word, ask for a hint, or ask to quit."
     )
-    selection = select_random_word().result
+    selection = RandomWordSelection.pick()
     secret_word = selection.selected_word
 
     for turns_left in range(20, 0, -1):
         user_input = input(f"\nGuess the word ({turns_left} turns left): ")
-        evaluation = evaluate_guess(
-            text=user_input,
-            secret_word=secret_word,
-            gpt_system_prompt="Be very concise.",
-        ).result
+        evaluation = InputEvaluation.from_user_text(
+            text=user_input, secret_word=secret_word
+        )
         if evaluation.user_guessed_the_secret_word:
             print("Congratulations, you won!", f"It was indeed {secret_word}")
             break

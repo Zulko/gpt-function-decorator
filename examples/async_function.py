@@ -11,7 +11,7 @@ async def print_stories(subjects: list[str]):
     """Print stories generated asynchronously (in "parallel") from the subjects"""
     stories = [write_story(subject) for subject in subjects]
     for story in asyncio.as_completed(stories):
-        print(await story + 2 * "\n")
+        print((await story) + 2 * "\n")
 
 
 if __name__ == "__main__":

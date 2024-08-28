@@ -4,7 +4,7 @@ about a subject, then the reviewer points at possible improvements it, and the
 writer improves the story basedvon the review. This process repeats twice, and
 the final story is printed."""
 
-from gpt_function_decorator import gpt_function, ReasonedAnswer
+from gpt_function_decorator import gpt_function, Reasoned
 
 
 @gpt_function
@@ -18,7 +18,7 @@ def review(story: str) -> str:
 
 
 @gpt_function
-def improve_story(subject, story, review) -> ReasonedAnswer(str):
+def improve_story(subject, story, review) -> Reasoned[str]:
     """Use the review to improve the story about {subject}"""
 
 
@@ -29,5 +29,5 @@ if __name__ == "__main__":
         print(f"\n\n\nStory:\n\n{story}")
         opinion = review(story)
         print(f"\n\n\nReview:\n\n{opinion}")
-        story = improve_story(subject, story, opinion).result
+        story = improve_story(subject, story, opinion)
     print(f"\n\n\nFinal story:\n\n{story}")

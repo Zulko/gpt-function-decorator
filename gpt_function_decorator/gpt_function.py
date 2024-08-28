@@ -1,15 +1,12 @@
 from functools import wraps
-import typing
+from typing import Generic, TypeVar, get_type_hints
 import asyncio
+import inspect
 
 import pydantic
 from openai import OpenAI
 
-from . import arg_utils
-
-# Makes all pydantic models dumpable to JSON via json.dumps(...) even
-# when nested deep into other structures.
-pydantic.BaseModel.__json__ = pydantic.BaseModel.model_dump_json
+from .generate_prompt import generate_prompt, dedent_string
 
 # This is a global variable that will store the OpenAI client. This
 # enables any user to set the client  under their own terms (key, project...)
@@ -44,17 +41,30 @@ gpt_system_prompt: Optional[str]
 def gpt_function(func):
     """Decorator that runs a function on a GPT model."""
 
-    requested_format = typing.get_type_hints(func).get("return", str)
-    if not isinstance(requested_format, pydantic.BaseModel):
+    # Get the requested output format. Convert to a pydantic model if it's not
+    # already (this is needed for the GPT API to understand the output format).
 
-        class __Response(pydantic.BaseModel):
-            response: requested_format
-
-        requested_format = __Response
-
-    @arg_utils.add_kwargs(gpt_model="gpt-4o-mini", gpt_system_prompt=None)
+    @add_kwargs(gpt_model="gpt-4o-mini", gpt_system_prompt=None, gpt_debug=False)
     @wraps(func)  # This preserves the docstring and other attributes
     def wrapper(*args, **kwargs):
+
+        # this block could be outside the wrapper, but it's better to keep it
+        # here at it allows to define class constructors with the `@gpt_function`
+        # decorator, and it will work as expected:
+        #
+        # class MyClass:
+        #     @staticmethod
+        #     @gpt_function
+        #     def from_description(description: str) -> "MyClass":
+        #         """Return a new MyClass instance from a description."""
+        #
+        # (class constructors are typically created before the output class
+        # format is defined).
+        requested_format = get_type_hints(func).get("return", str)
+        if not isinstance(requested_format, pydantic.BaseModel):
+            requested_format = BasicPydanticWrapper[requested_format]
+            requested_format.__name__ = f"{func.__name__}Response"
+
         # Get and remove parameters used by the wrapper only
         gpt_model = kwargs.pop("gpt_model")
         if gpt_model == "gpt-4o":
@@ -62,15 +72,22 @@ def gpt_function(func):
             # will remove that later when more models are available.
             gpt_model = "gpt-4o-2024-08-06"
         gpt_system_prompt = kwargs.pop("gpt_system_prompt")
+        gpt_debug = kwargs.pop("gpt_debug")
 
-        all_named_args = arg_utils.name_all_args_and_defaults(func, args, kwargs)
+        # if there is any argument not from the original function's signature,
+        # and the function is not supposed to take in arbitrary kwargs, raise an error
+        check_for_unknown_kwargs(func, kwargs)
 
-        prompt = arg_utils.generate_prompt_from_docstring(func.__doc__, all_named_args)
+        # Generate the prompt
+        prompt = generate_prompt(func, args, kwargs, requested_format)
+        if gpt_debug:
+            print(f"<{func.__name__}()> prompt:\n{prompt}")
 
+        # Generate the system prompt
         system_prompt = "Answer using the provided output schema."
         if gpt_system_prompt:
             # Add user provided prompt
-            gpt_system_prompt = arg_utils.dedent_string(gpt_system_prompt)
+            gpt_system_prompt = dedent_string(gpt_system_prompt)
             system_prompt = gpt_system_prompt + "\n" + system_prompt
         gpt_messages = [
             {"role": "system", "content": system_prompt},
@@ -87,15 +104,19 @@ def gpt_function(func):
             messages=gpt_messages, model=gpt_model, response_format=requested_format
         )
         formatted_response = response.choices[0].message.parsed
-        if formatted_response.__class__.__name__ == "__Response":
-            formatted_response = formatted_response.response
 
-        return formatted_response
+        # Return the response (extract the response if we used nested trickery)
+        if isinstance(formatted_response, BasicPydanticWrapper):
+            formatted_response = formatted_response.response
+        elif isinstance(formatted_response, Reasoned):
+            return formatted_response.extract_result()
+        else:
+            return formatted_response
 
     # if the original function is async, make the wrapper async too
     if asyncio.iscoroutinefunction(func):
 
-        @arg_utils.add_kwargs(semaphore=None)
+        @add_kwargs(semaphore=None)
         @wraps(wrapper)
         async def async_wrapper(*args, **kwargs):
             semaphore = kwargs.pop("semaphore")
@@ -106,8 +127,9 @@ def gpt_function(func):
                 return await asyncio.to_thread(wrapper, *args, **kwargs)
 
         async_wrapper.__doc__ += ADDITIONAL_DOCS + (
-            "\n\nThis function is async and can be called with an "
-            "asyncio.Semaphore(5) to limit the number of concurrent executions."
+            "\n\nThis function is async and can be called with an semaphore "
+            "(e.g. asyncio.Semaphore(5))\nto limit the number of concurrent "
+            "executions."
         )
         return async_wrapper
 
@@ -117,18 +139,83 @@ def gpt_function(func):
     return wrapper
 
 
-def ReasonedAnswer(T) -> pydantic.BaseModel:
-    """Return a new type that includes a reasoning string with the result.
+# Define a TypeVar that can be used for generics
+T = TypeVar("T")
 
-    The reasoning will be in `myvariable.reasoning`, and the result with the
-    originally requested type T will be in `myvariable.result`.
-    """
 
-    class _ReasonedAnswer(pydantic.BaseModel):
-        reasoning: str
-        result: T
+# Define the Reasoned generic class
+class Reasoned(pydantic.BaseModel, Generic[T]):
+    result: T
+    reasoning: str
 
-        def __str__(self):
-            return f"{self.result}\n\nGPT reasoning: {self.reasoning}"
+    def extract_result(self):
+        result = self.result
+        try:
+            result.__reasoning__ = self.reasoning
+            return result
+        except AttributeError:
 
-    return _ReasonedAnswer
+            class ReasonedWrapper(result.__class__):
+                __reasoning__ = self.reasoning
+
+            return ReasonedWrapper(result)
+
+
+class BasicPydanticWrapper(pydantic.BaseModel, Generic[T]):
+    response: T
+
+
+def add_kwargs(**new_kwargs):
+    """Decorator to add keyword arguments to a function's signature."""
+
+    def decorator(func):
+        # Get the original function's signature
+        sig = inspect.signature(func)
+        params = list(sig.parameters.values())
+
+        # Add new kwargs to the parameters
+        parameter_type = inspect.Parameter.POSITIONAL_OR_KEYWORD
+        keyword_only = inspect.Parameter.KEYWORD_ONLY
+        if any([param.kind == keyword_only for param in params]):
+            parameter_type = keyword_only
+
+        new_params = [
+            inspect.Parameter(name, parameter_type, default=value)
+            for name, value in new_kwargs.items()
+        ]
+
+        # Update the function's signature
+        params.extend(new_params)
+        new_sig = sig.replace(parameters=params)
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # The new kwargs are already added to the signature, so they will
+            # be available in kwargs when the function is called.
+            kwargs = {**new_kwargs, **kwargs}
+            return func(*args, **kwargs)
+
+        # Update the signature of the wrapper function
+        wrapper.__signature__ = new_sig
+
+        return wrapper
+
+    return decorator
+
+
+def check_for_unknown_kwargs(func, kwargs):
+    """Check if there are any kwargs that are not in the function's signature."""
+    parameters = inspect.signature(func).parameters
+    if len(parameters):
+        params_names, params = zip(*parameters.items())
+        KWARGS = inspect.Parameter.VAR_KEYWORD
+        if not any([param.kind == KWARGS for param in params]):
+            for key in kwargs:
+                if key not in params_names:
+                    funcname = func.__name__
+                    msg = f"{funcname}() got an unexpected keyword argument '{key}'"
+                    raise TypeError(msg)
+    elif len(kwargs):
+        kwarg_names = ", ".join(kwargs.keys())
+        msg = f"{funcname}() takes no keyword arguments but was given {kwarg_names}"
+        raise TypeError(msg)
