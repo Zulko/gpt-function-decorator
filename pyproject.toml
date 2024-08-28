@@ -10,7 +10,8 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License"
 ]
 dependencies = [
-    "openai>=1.41"
+    "openai>=1.41",
+    "PyYAML"
 ]
 
 [build-system]
