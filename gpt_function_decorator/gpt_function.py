@@ -61,9 +61,11 @@ def gpt_function(func):
         # (class constructors are typically created before the output class
         # format is defined).
         requested_format = get_type_hints(func).get("return", str)
-        if not isinstance(requested_format, pydantic.BaseModel):
+        if not issubclass(requested_format, pydantic.BaseModel):
             requested_format = BasicPydanticWrapper[requested_format]
-            requested_format.__name__ = f"{func.__name__}Response"
+        if "[" in requested_format.__name__:
+            name = f"{func.__name__}_Response"
+            requested_format = type(name, (requested_format,), {})
 
         # Get and remove parameters used by the wrapper only
         gpt_model = kwargs.pop("gpt_model")
@@ -104,11 +106,9 @@ def gpt_function(func):
             messages=gpt_messages, model=gpt_model, response_format=requested_format
         )
         formatted_response = response.choices[0].message.parsed
-
         # Return the response (extract the response if we used nested trickery)
         if isinstance(formatted_response, BasicPydanticWrapper):
-            formatted_response = formatted_response.response
-            return formatted_response
+            return formatted_response.response
         elif isinstance(formatted_response, Reasoned):
             return formatted_response.extract_result()
         else:
