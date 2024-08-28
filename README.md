@@ -352,6 +352,7 @@ print (answer.__reasoning__)
 The `gpt_function` decorator adds two parameters to the function it decorates:
 - `gpt_model`: this allows the function's user to switch between `gpt-4o-mini` (the default, fast and cheap but less capable) and `gpt-4o` (any compatible version).
 - `gpt_system_prompt`: this enables the user to tweak the answer as they would like by asking the GPT to focus on some aspects, or to roleplay.
+- `gpt_debug`: this will cause the function to print the full prompt that it sends to the GPT (useful for troubleshooting or just getting a sense of what's going on).
 
 As an example, let's start from this function:
 
