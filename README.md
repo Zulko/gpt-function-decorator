@@ -63,7 +63,7 @@ def sentiment(text: str) -> float:
     """
 ```
 
-One advantage of `marvin` has been the possibility to enforce an output schema, however this is now a feature we get for free from the OpenAI API. In comparison, the `gpt_function`, which leverages the new OpenAI feature, is much more lightweight (it only depends on `openai`, and the core logics is ~50 lines of code) and provides extra practical features like automated keyword arguments and reasoned answers.
+One advantage of `marvin` has been the possibility to enforce an output schema, however this is now a feature we get for free from the OpenAI API. In comparison, the `gpt_function`, which leverages the new OpenAI feature, is much more lightweight (it only depends on `openai`, and the core logics is ~50 lines of code) and provides a few extra practical features like "answers with reasoning", providing output field descriptions to the GPT, and adding gpt-related keyword arguments to the decorated functions.
 
 
 ## Installation and setup
