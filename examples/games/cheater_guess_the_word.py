@@ -3,7 +3,7 @@ by changing the secret word if the user guesses it, until it cannot change it
 anymore without contradicting previous questions/answers.
 """
 
-from gpt_function_decorator import gpt_function, Reasoned
+from gpt_function_decorator import gpt_function
 from pydantic import BaseModel, Field
 
 
@@ -12,10 +12,8 @@ class RandomWordSelection(BaseModel):
     could_find_a_word: bool
 
 
-@gpt_function
-def select_random_word(
-    avoided_words=None, answers=None
-) -> Reasoned[RandomWordSelection]:
+@gpt_function(reasoning=True)
+def select_random_word(avoided_words=None, answers=None) -> RandomWordSelection:
     """If it is possible, pick a word not in {avoided_words} for which you  ALL
     of these answers are strictly true: {answers}. If not possible, set
     could_find_a_word=False"""
@@ -32,12 +30,11 @@ class InputEvaluation(BaseModel):
     )
     user_asked_to_quit: bool = Field(description="Does the user want to quit?")
 
-
-@gpt_function
-def evaluate_guess(text: str, secret_word: str) -> Reasoned[InputEvaluation]:
-    """In trying to guess secret word "{secret_word}", the user said "{text}".
-    Evaluate this input
-    """
+    @gpt_function(reasoning=True)
+    def evaluate_guess(text: str, secret_word: str) -> "InputEvaluation":
+        """In trying to guess secret word "{secret_word}", the user said "{text}".
+        Evaluate this input
+        """
 
 
 def play_cheater_guess_the_word(subject):

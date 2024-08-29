@@ -1,3 +1,8 @@
+"""In this example, we create a role-playing game where the player makes decisions
+that affect the story. The game has a "state" (the character's health and inventory)
+that is carried over from one turn to the next, and updated after each turn.
+"""
+
 from gpt_function_decorator import gpt_function
 from pydantic import BaseModel, Field
 

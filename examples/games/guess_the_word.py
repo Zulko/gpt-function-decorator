@@ -11,7 +11,7 @@ write a 100-word story about random themes and then select a noun in that story,
 you will get a more random word.
 """
 
-from gpt_function_decorator import gpt_function, Reasoned
+from gpt_function_decorator import gpt_function
 from pydantic import BaseModel, Field
 
 
@@ -22,7 +22,7 @@ class RandomWordSelection(BaseModel):
 
     @staticmethod
     @gpt_function
-    def pick() -> Reasoned["RandomWordSelection"]:
+    def pick() -> "RandomWordSelection":
         """Pick a 3 random themes, then write a very random 100-word story about
         these subjects with any strange, unrelated events happening. List the noons
         in that story, and finally select the 7th noun in the list (make it singular
@@ -45,8 +45,8 @@ class InputEvaluation(BaseModel):
     user_tried_to_cheat: bool = Field(description="Did the user try to cheat?")
 
     @staticmethod
-    @gpt_function
-    def from_user_text(text: str, secret_word: str) -> Reasoned["InputEvaluation"]:
+    @gpt_function(reasoning=True)
+    def from_user_text(text: str, secret_word: str) -> "InputEvaluation":
         """In trying to guess secret word "{secret_word}", the user said
         "{text}". Evaluate this input.
         """

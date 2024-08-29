@@ -35,135 +35,182 @@ gpt_system_prompt: Optional[str]
     Additional prompt to be added before the user's prompt. This can be used
     to give the model more context about the task it's performing, or more generally
     to tweak its behavior
+
+gpt_debug: bool
+    If True, the prompt sent to the GPT model will be printed before sending it,
+    this can be useful to see exactly what the GPT model gets, and debug the
+    prompt generation.
 """
 
 
-def gpt_function(func):
-    """Decorator that runs a function on a GPT model."""
+def gpt_function(
+    model: str = "gpt-4o-mini",
+    reasoning: bool = False,
+):
+    """Decorator that runs a function by feeding its docstring and parameters
+    to a GPT model.
+
+    Parameters
+    ----------
+
+    model:
+      The GPT model that this function will use by default (the user can still
+      change it at runtime).
+
+    reasoning:
+        If True, the function will return a result with a  __reasoning__
+        attribute showing the reasoning. Asking GPT for a reasoning explicity
+        generally improves the quality of answers and is useful for debugging.
+    """
+
+    if hasattr(model, "__call__"):
+        # Case where the user wrote @gpt_function without argument nor
+        # parenthesis. In this case we understand that the first argument
+        # is the function itself and that the user meant to use the decorator
+        # with the default parameter values.
+        func = model
+        return gpt_function()(func)
 
     # Get the requested output format. Convert to a pydantic model if it's not
     # already (this is needed for the GPT API to understand the output format).
 
-    @add_kwargs(gpt_model="gpt-4o-mini", gpt_system_prompt=None, gpt_debug=False)
-    @wraps(func)  # This preserves the docstring and other attributes
-    def wrapper(*args, **kwargs):
+    def decorator(func):
 
-        # this block could be outside the wrapper, but it's better to keep it
-        # here at it allows to define class constructors with the `@gpt_function`
-        # decorator, and it will work as expected:
-        #
-        # class MyClass:
-        #     @staticmethod
-        #     @gpt_function
-        #     def from_description(description: str) -> "MyClass":
-        #         """Return a new MyClass instance from a description."""
-        #
-        # (class constructors are typically created before the output class
-        # format is defined).
-        requested_format = get_type_hints(func).get("return", str)
-        if not issubclass(requested_format, pydantic.BaseModel):
-            requested_format = BasicPydanticWrapper[requested_format]
-        if "[" in requested_format.__name__:
-            name = f"{func.__name__}_Response"
-            requested_format = type(name, (requested_format,), {})
-
-        # Get and remove parameters used by the wrapper only
-        gpt_model = kwargs.pop("gpt_model")
-        if gpt_model == "gpt-4o":
-            # The only one that works with structured output so far,
-            # will remove that later when more models are available.
-            gpt_model = "gpt-4o-2024-08-06"
-        gpt_system_prompt = kwargs.pop("gpt_system_prompt")
-        gpt_debug = kwargs.pop("gpt_debug")
-
-        # if there is any argument not from the original function's signature,
-        # and the function is not supposed to take in arbitrary kwargs, raise an error
-        check_for_unknown_kwargs(func, kwargs)
-
-        # Generate the prompt
-        prompt = generate_prompt(func, args, kwargs, requested_format)
-        if gpt_debug:
-            print(f"<{func.__name__}()> prompt:\n{prompt}")
-
-        # Generate the system prompt
-        system_prompt = "Answer using the provided output schema."
-        if gpt_system_prompt:
-            # Add user provided prompt
-            gpt_system_prompt = dedent_string(gpt_system_prompt)
-            system_prompt = gpt_system_prompt + "\n" + system_prompt
-        gpt_messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt},
-        ]
-
-        # Initiate the global GPT client if it's not already set
-        client = SETTINGS["openai_client"]
-        if client is None:
-            client = SETTINGS["openai_client"] = OpenAI()
-
-        # Query the GPT model, extract the response
-        response = client.beta.chat.completions.parse(
-            messages=gpt_messages, model=gpt_model, response_format=requested_format
+        @add_kwargs(
+            gpt_model=model,
+            gpt_reasoning=reasoning,
+            gpt_system_prompt=None,
+            gpt_debug=False,
         )
-        formatted_response = response.choices[0].message.parsed
-        # Return the response (extract the response if we used nested trickery)
-        if isinstance(formatted_response, BasicPydanticWrapper):
-            return formatted_response.response
-        elif isinstance(formatted_response, Reasoned):
-            return formatted_response.extract_result()
-        else:
-            return formatted_response
+        @wraps(func)  # This preserves the docstring and other attributes
+        def wrapper(*args, **kwargs):
 
-    # if the original function is async, make the wrapper async too
-    if asyncio.iscoroutinefunction(func):
+            # this block could be outside the wrapper, but it's better to keep it
+            # here at it allows to define class constructors with the `@gpt_function`
+            # decorator, and it will work as expected:
+            #
+            # class MyClass:
+            #     @staticmethod
+            #     @gpt_function
+            #     def from_description(description: str) -> "MyClass":
+            #         """Return a new MyClass instance from a description."""
+            #
+            # (class constructors are typically created before the output class
+            # format is defined).
+            gpt_system_prompt = kwargs.pop("gpt_system_prompt")
+            gpt_debug = kwargs.pop("gpt_debug")
+            gpt_reasoning = kwargs.pop("gpt_reasoning")
+            gpt_model = kwargs.pop("gpt_model")
+            if gpt_model == "gpt-4o":
+                # The only one that works with structured output so far,
+                # will remove that later when more models are available.
+                gpt_model = "gpt-4o-2024-08-06"
 
-        @add_kwargs(semaphore=None)
-        @wraps(wrapper)
-        async def async_wrapper(*args, **kwargs):
-            semaphore = kwargs.pop("semaphore")
-            if semaphore is not None:
-                async with semaphore:
-                    return await asyncio.to_thread(wrapper, *args, **kwargs)
+            requested_format = get_type_hints(func).get("return", str)
+
+            if gpt_reasoning:
+                requested_format = get_reasoning_format(requested_format)
+
+            try:
+                if not issubclass(requested_format, pydantic.BaseModel):
+                    requested_format = get_pydantic_format(requested_format)
+            except:
+                requested_format = get_pydantic_format(requested_format)
+
+            # Get and remove parameters used by the wrapper only
+
+            # if there is any argument not from the original function's signature,
+            # and the function is not supposed to take in arbitrary kwargs, raise
+            # an error
+            check_for_unknown_kwargs(func, kwargs)
+
+            # Generate the prompt
+            prompt = generate_prompt(func, args, kwargs, requested_format)
+            if gpt_debug:
+                print(f"<{func.__name__}()> prompt:\n{prompt}")
+
+            # Generate the system prompt
+            system_prompt = "Answer using the provided output schema."
+            if gpt_system_prompt:
+                # Add user provided prompt
+                gpt_system_prompt = dedent_string(gpt_system_prompt)
+                system_prompt = gpt_system_prompt + "\n" + system_prompt
+            gpt_messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ]
+
+            # Initiate the global GPT client if it's not already set
+            client = SETTINGS["openai_client"]
+            if client is None:
+                client = SETTINGS["openai_client"] = OpenAI()
+
+            # Query the GPT model, extract the response
+            response = client.beta.chat.completions.parse(
+                messages=gpt_messages, model=gpt_model, response_format=requested_format
+            )
+            formatted_response = response.choices[0].message.parsed
+            # Return the response (extract the response if we used nested trickery)
+            if formatted_response.__class__.__name__ == "PydanticWrapper":
+                return formatted_response.response
+            elif gpt_reasoning:
+                return formatted_response.extract_result()
             else:
-                return await asyncio.to_thread(wrapper, *args, **kwargs)
+                return formatted_response
 
-        async_wrapper.__doc__ += ADDITIONAL_DOCS + (
-            "\n\nThis function is async and can be called with an semaphore "
-            "(e.g. asyncio.Semaphore(5))\nto limit the number of concurrent "
-            "executions."
-        )
-        return async_wrapper
+        # if the original function is async, make the wrapper async too
+        if asyncio.iscoroutinefunction(func):
 
-    # Add a text to the docstring so it will be clear to users that the
-    # function is actually running on a chatbot.
-    wrapper.__doc__ += ADDITIONAL_DOCS
-    return wrapper
+            @add_kwargs(semaphore=None)
+            @wraps(wrapper)
+            async def async_wrapper(*args, **kwargs):
+                semaphore = kwargs.pop("semaphore")
+                if semaphore is not None:
+                    async with semaphore:
+                        return await asyncio.to_thread(wrapper, *args, **kwargs)
+                else:
+                    return await asyncio.to_thread(wrapper, *args, **kwargs)
 
+            async_wrapper.__doc__ += ADDITIONAL_DOCS + (
+                "\n\nThis function is async and can be called with an semaphore "
+                "(e.g. asyncio.Semaphore(5))\nto limit the number of concurrent "
+                "executions."
+            )
+            return async_wrapper
 
-# Define a TypeVar that can be used for generics
-T = TypeVar("T")
+        # Add a text to the docstring so it will be clear to users that the
+        # function is actually running on a chatbot.
+        wrapper.__doc__ += ADDITIONAL_DOCS
+        return wrapper
 
-
-# Define the Reasoned generic class
-class Reasoned(pydantic.BaseModel, Generic[T]):
-    result: T
-    reasoning: str
-
-    def extract_result(self):
-        result = self.result
-        try:
-            result.__reasoning__ = self.reasoning
-            return result
-        except AttributeError:
-
-            class ReasonedWrapper(result.__class__):
-                __reasoning__ = self.reasoning
-
-            return ReasonedWrapper(result)
+    return decorator
 
 
-class BasicPydanticWrapper(pydantic.BaseModel, Generic[T]):
-    response: T
+def get_reasoning_format(requested_format):
+    class ReasoningFormatWrapper(pydantic.BaseModel):
+        result: requested_format
+        reasoning: str
+
+        def extract_result(self):
+            result = self.result
+            try:
+                result.__reasoning__ = self.reasoning
+                return result
+            except AttributeError:
+
+                class ReasoningWrapper(result.__class__):
+                    __reasoning__ = self.reasoning
+
+                return ReasoningWrapper(result)
+
+    return ReasoningFormatWrapper
+
+
+def get_pydantic_format(requested_format):
+    class PydanticWrapper(pydantic.BaseModel):
+        response: requested_format
+
+    return PydanticWrapper
 
 
 def add_kwargs(**new_kwargs):

@@ -109,7 +109,7 @@ def find_nested_pydantic_models(
                 find_nested_pydantic_models(sub_type, found_models)
 
     elif isinstance(some_type, type) and issubclass(some_type, BaseModel):
-        if some_type.__name__ not in ["_Reasoned", "__Response"]:
+        if some_type.__name__ not in ["ReasoningFormatWrapper", "PydanticWrapper"]:
             found_models.add(some_type)
         for field_name, field_type in some_type.__annotations__.items():
             if field_type not in found_models:

@@ -8,19 +8,22 @@ Well' start from a subject, like "a detective is on the hunt for a lost cat.".
   functions) and then it writes each scene's script (also async in parallel).
 - Finally, it will generate an HTML file with the full movie script.
 
-The whole process takes under 2 minutes and costs around 5c of OpenAI at the
-time of writing. 
+The whole process takes under 2 minutes and costs around 0.05$ of OpenAI credit at
+the time of writing. 
 """
 
 import asyncio
-from pydantic import BaseModel, Field
-from gpt_function_decorator import gpt_function, Reasoned
+from typing import List
+from pydantic import BaseModel
+from gpt_function_decorator import gpt_function
 
 
 try:
     import jinja2
 except ImportError:
-    print("This example requires jinja2, install it with `pip install jinja2`")
+    raise ImportError(
+        "This example requires jinja2, install it with `pip install jinja2`"
+    )
 
 
 class MovieOutline(BaseModel):
@@ -31,7 +34,7 @@ class MovieOutline(BaseModel):
 
     @staticmethod
     @gpt_function
-    def from_subject(subject) -> Reasoned[MovieOutline]:
+    def from_subject(subject) -> "MovieOutline":
         """Write a plot for a short movie based on the given subject,
         then write a catchy synopsis and find a great movie title to go with it."""
 
@@ -46,7 +49,7 @@ class Character(BaseModel):
 
     @staticmethod
     @gpt_function
-    def list_from_plot(n: int, plot: str) -> Reasoned[list[Character]]:
+    def list_from_plot(n: int, plot: str) -> List["Character"]:
         """Flesh out {n} main characters for the given plot. Be concise."""
 
 
@@ -55,15 +58,13 @@ class ActOutline(BaseModel):
     summary: str
     character_names: list[str]
 
-    @gpt_function
-    def list_from_plot(
-        n: int, plot: str, characters: list[Character]
-    ) -> Reasoned[list["ActOutline"]]:
-        """Come up with {n} acts for the movie, with for each a title and a summary
-        explaining which characters are involved (use full names) and what they do."""
 
-
-### Act scene outlines
+@gpt_function(reasoning=True)
+def list_from_plot(
+    n: int, plot: str, characters: list[Character]
+) -> list["ActOutline"]:
+    """Come up with {n} acts for the movie, with for each a title and a summary
+    explaining which characters are involved (use full names) and what they do."""
 
 
 class SceneOutline(BaseModel):
@@ -73,11 +74,11 @@ class SceneOutline(BaseModel):
 
 
 @gpt_function
-def write_act_scenes_outline(
+def list_from_act_outline(
     act_outline: ActOutline,
     full_story_plot: str,
     background_on_characters: list[Character],
-) -> Reasoned[list[SceneOutline]]:
+) -> list["SceneOutline"]:
     """Decompose the act into scenes, and for each scene provide a summary.
     The summary should use characters (with their full name) mentioned in the
     act outline, and from the provided list.
@@ -88,72 +89,125 @@ def write_act_scenes_outline(
 ### Act text
 
 
-@gpt_function
-async def write_scene_text(
-    scene_outline: SceneOutline,
-    act_outline: ActOutline,
-    background_on_characters: list[Character],
-) -> Reasoned[str]:
-    """Write the movie script for the scene.
-    Follow the provided scene outline. The full act outline is also provided
-    but only for context.
-
-    When writing about the characters, refer to their physical appearance
-    or personality traits, as provided.
-
-    Use HTML for any formatting such as italics, bold text, but do not
-    include any CSS styles, nor title, nor sections, nor paragraphs.
-    """
-
-
 class Scene(BaseModel):
     outline: SceneOutline
     text: str
+
+    @staticmethod
+    @gpt_function(reasoning=True)
+    async def write_scene_text(
+        scene_outline: SceneOutline,
+        act_outline: ActOutline,
+        background_on_characters: list[Character],
+    ) -> str:
+        """Write the movie script for the scene.
+        Follow the provided scene outline. The full act outline is also provided
+        but only for context.
+
+        When writing about the characters, refer to their physical appearance
+        or personality traits, as provided.
+
+        Use HTML for any formatting such as italics, bold text, but do not
+        include any CSS styles, nor title, nor sections, nor paragraphs.
+        """
+
+    @classmethod
+    async def from_outline(
+        cls,
+        scene_outline: SceneOutline,
+        act_outline: ActOutline,
+        background_on_characters: list[Character],
+        gpt_system_prompt: str,
+        semaphore: asyncio.Semaphore,
+    ) -> "Scene":
+        text = await cls.write_scene_text(
+            scene_outline=scene_outline,
+            act_outline=act_outline,
+            background_on_characters=background_on_characters,
+            gpt_system_prompt=gpt_system_prompt,
+        )
+        return Scene(outline=scene_outline, text=text)
 
 
 class Act(BaseModel):
     outline: ActOutline
     scenes: list[Scene]
 
-
-async def write_act(
-    act_outline: ActOutline,
-    plot: str,
-    characters: list[Character],
-    gpt_system_prompt: str,
-    async_semaphore: asyncio.Semaphore,
-) -> list[Act]:
-    scene_outlines = write_act_scenes_outline(
-        act_outline.summary,
-        full_story_plot=plot,
-        background_on_characters=characters,
-        gpt_system_prompt=gpt_system_prompt,
-    )
-    scene_text_futures = [
-        write_scene_text(
-            scene_outline=scene_outline.summary,
-            act_outline=act_outline.summary,
-            background_on_characters=[
-                c for c in characters if c.name in scene_outline.character_names
-            ],
+    @staticmethod
+    async def from_outline(
+        act_outline: ActOutline,
+        plot: str,
+        characters: list[Character],
+        gpt_system_prompt: str,
+        async_semaphore: asyncio.Semaphore,
+    ) -> list["Act"]:
+        scene_outlines = SceneOutline.list_from_act_outline(
+            act_outline.summary,
+            full_story_plot=plot,
+            background_on_characters=characters,
             gpt_system_prompt=gpt_system_prompt,
-            semaphore=async_semaphore,
         )
-        for scene_outline in scene_outlines
-    ]
-    scene_texts = [e for e in await asyncio.gather(*scene_text_futures)]
+        scene_text_futures = [
+            Scene.from_outline(
+                scene_outline=scene_outline.summary,
+                act_outline=act_outline.summary,
+                background_on_characters=[
+                    c for c in characters if c.name in scene_outline.character_names
+                ],
+                gpt_system_prompt=gpt_system_prompt,
+                semaphore=async_semaphore,
+            )
+            for scene_outline in scene_outlines
+        ]
+        scenes = await asyncio.gather(*scene_text_futures)
+        return Act(outline=act_outline, scenes=scenes)
 
-    scenes = [
-        Scene(outline=outline, text=text)
-        for (outline, text) in zip(scene_outlines, scene_texts)
-    ]
-    return Act(outline=act_outline, scenes=scenes)
 
-
-class Movie(BaseModel):
+class MovieScript(BaseModel):
     outline: MovieOutline
     characters: list[Character]
     acts: list[Act]
+
+    @staticmethod
+    async def from_subject(
+        subject: str = None,
+        n_characters: int = 5,
+        n_acts: int = 6,
+        system_prompt: str = None,
+    ) -> "MovieScript":
+
+        kwargs = {"gpt_system_prompt": system_prompt}
+        outline = MovieOutline.from_subject(
+            subject=subject, gpt_model="gpt-4o", **kwargs
+        )
+        print("Title:", outline.title)
+        print("Synopsis:", outline.synopsis)
+        print("\nWriting that story...")
+        characters = Character.list_from_plot(
+            n=n_characters, plot=outline.plot, gpt_model="gpt-4o", **kwargs
+        )
+        act_outlines = ActOutline.list_from_plot(
+            n_acts, outline.plot, characters, gpt_model="gpt-4o", **kwargs
+        )
+
+        async_semaphore = asyncio.Semaphore(10)
+
+        act_futures = [
+            Act.from_outline(
+                act_outline=act_outline,
+                plot=outline.plot,
+                characters=[
+                    c for c in characters if c.name in act_outline.character_names
+                ],
+                async_semaphore=async_semaphore,
+                **kwargs,
+            )
+            for act_outline in act_outlines
+        ]
+        acts = await asyncio.gather(*act_futures)
+
+        print("All done!")
+        return MovieScript(acts=acts, outline=outline, characters=characters)
 
     def html(self) -> str:
         template = """
@@ -195,43 +249,6 @@ class Movie(BaseModel):
         return jinja2.Template(template).render(movie=self)
 
 
-async def write_a_movie(
-    subject: str = None,
-    n_characters: int = 5,
-    n_acts: int = 6,
-    system_prompt: str = None,
-) -> Movie:
-
-    kwargs = {"gpt_system_prompt": system_prompt}
-    outline = MovieOutline.from_subject(subject=subject, gpt_model="gpt-4o", **kwargs)
-    print("Title:", outline.title)
-    print("Synopsis:", outline.synopsis)
-    print("\nWriting that story...")
-    characters = Character.list_from_plot(
-        n=n_characters, plot=outline.plot, gpt_model="gpt-4o", **kwargs
-    )
-    act_outlines = ActOutline.list_from_plot(
-        n_acts, outline.plot, characters, gpt_model="gpt-4o", **kwargs
-    )
-
-    async_semaphore = asyncio.Semaphore(10)
-
-    act_futures = [
-        write_act(
-            act_outline=act_outline,
-            plot=outline.plot,
-            characters=[c for c in characters if c.name in act_outline.character_names],
-            async_semaphore=async_semaphore,
-            **kwargs,
-        )
-        for act_outline in act_outlines
-    ]
-    acts = await asyncio.gather(*act_futures)
-
-    print("All done!")
-    return Movie(acts=acts, outline=outline, characters=characters)
-
-
 async def main():
     subject = """
     A biotech engineer is working in her lab at the top floor of a 10-story
@@ -242,7 +259,7 @@ async def main():
     You are a brilliant screenwriter, your stories are full of action, suspense,
     and witty dialogue."""
 
-    movie = await write_a_movie(
+    movie = await MovieScript.from_subject(
         subject=subject,
         n_characters=4,
         n_acts=3,
