@@ -47,10 +47,10 @@ class Character(BaseModel):
     relationship_to_other_characters: str
     character_arc_in_the_movie: str
 
-    @staticmethod
-    @gpt_function
-    def list_from_plot(n: int, plot: str) -> List["Character"]:
-        """Flesh out {n} main characters for the given plot. Be concise."""
+
+@gpt_function
+def invent_characters_from_plot(n: int, plot: str) -> List[Character]:
+    """Flesh out {n} main characters for the given plot. Be concise."""
 
 
 class ActOutline(BaseModel):
@@ -60,9 +60,9 @@ class ActOutline(BaseModel):
 
 
 @gpt_function(reasoning=True)
-def list_from_plot(
+def act_outlines_from_plot(
     n: int, plot: str, characters: list[Character]
-) -> list["ActOutline"]:
+) -> list[ActOutline]:
     """Come up with {n} acts for the movie, with for each a title and a summary
     explaining which characters are involved (use full names) and what they do."""
 
@@ -74,11 +74,11 @@ class SceneOutline(BaseModel):
 
 
 @gpt_function
-def list_from_act_outline(
+def scene_outlines_from_act_outline(
     act_outline: ActOutline,
     full_story_plot: str,
     background_on_characters: list[Character],
-) -> list["SceneOutline"]:
+) -> list[SceneOutline]:
     """Decompose the act into scenes, and for each scene provide a summary.
     The summary should use characters (with their full name) mentioned in the
     act outline, and from the provided list.
@@ -121,7 +121,7 @@ class Scene(BaseModel):
         semaphore: asyncio.Semaphore,
     ) -> "Scene":
         text = await cls.write_scene_text(
-            scene_outline=scene_outline,
+            scene_outline=scene_outline.summary,
             act_outline=act_outline,
             background_on_characters=background_on_characters,
             gpt_system_prompt=gpt_system_prompt,
@@ -140,8 +140,8 @@ class Act(BaseModel):
         characters: list[Character],
         gpt_system_prompt: str,
         async_semaphore: asyncio.Semaphore,
-    ) -> list["Act"]:
-        scene_outlines = SceneOutline.list_from_act_outline(
+    ) -> "Act":
+        scene_outlines = scene_outlines_from_act_outline(
             act_outline.summary,
             full_story_plot=plot,
             background_on_characters=characters,
@@ -149,7 +149,7 @@ class Act(BaseModel):
         )
         scene_text_futures = [
             Scene.from_outline(
-                scene_outline=scene_outline.summary,
+                scene_outline=scene_outline,
                 act_outline=act_outline.summary,
                 background_on_characters=[
                     c for c in characters if c.name in scene_outline.character_names
@@ -183,10 +183,10 @@ class MovieScript(BaseModel):
         print("Title:", outline.title)
         print("Synopsis:", outline.synopsis)
         print("\nWriting that story...")
-        characters = Character.list_from_plot(
+        characters = invent_characters_from_plot(
             n=n_characters, plot=outline.plot, gpt_model="gpt-4o", **kwargs
         )
-        act_outlines = ActOutline.list_from_plot(
+        act_outlines = act_outlines_from_plot(
             n_acts, outline.plot, characters, gpt_model="gpt-4o", **kwargs
         )
 

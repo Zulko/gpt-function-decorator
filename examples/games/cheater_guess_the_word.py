@@ -31,7 +31,7 @@ class InputEvaluation(BaseModel):
     user_asked_to_quit: bool = Field(description="Does the user want to quit?")
 
     @gpt_function(reasoning=True)
-    def evaluate_guess(text: str, secret_word: str) -> "InputEvaluation":
+    def from_guess(text: str, secret_word: str) -> "InputEvaluation":
         """In trying to guess secret word "{secret_word}", the user said "{text}".
         Evaluate this input
         """
@@ -51,7 +51,7 @@ def play_cheater_guess_the_word(subject):
     for turns_left in range(50, 0, -1):
         user_input = input(f"\nGuess the word ({turns_left} turns left): ")
         logs += f"INPUT: {user_input}\n"
-        evaluation = evaluate_guess(text=user_input, secret_word=secret_word)
+        evaluation = InputEvaluation.from_guess(user_input, secret_word=secret_word)
         evaluation = evaluation
         if evaluation.user_guessed_the_secret_word:
             # The user is about to win! We'll try changing the secret word.
